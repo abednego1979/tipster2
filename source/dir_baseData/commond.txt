@@ -1,0 +1,7 @@
+create table recommondWeight (sockNo char(64) NOT NULL, weight_array TEXT NULL, PRIMARY KEY (sockNo))
+
+#show all the tables
+sqlite:
+select name from sqlite_master where type="table";
+MySQL:
+show tables;
