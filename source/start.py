@@ -312,18 +312,7 @@ class ArbitrerCLI:
                 
                 if myGlobal.userChooseProxySet=='on':
                     #代理信息加密存储，这里先要解密
-                    from aes import AESCrypto
-                    
-                    passKey=input('input the decrypt key:')
-                    assert len(passKey)==16 or len(passKey)==24 or len(passKey)==32
-                    
-                    if not isinstance(passKey, bytes):
-                        passKey = passKey.encode()
-                    
-                    ciphertext = config.config_proxy_info
-                    ciphertext = base64.b64decode(ciphertext)
-                    temp_config_proxy = AESCrypto(passKey, b'0000000000000000').decrypt(ciphertext)
-                    temp_config_proxy=json.loads(temp_config_proxy)
+                    temp_config_proxy = json.loads(config.decryptInfo(config.config_proxy_info, config.cryptoKey))
                     
                     a=temp_config_proxy['user']
                     b=temp_config_proxy['password']
@@ -390,6 +379,12 @@ def main():
     print('Tipster(TensorFlow) '+v.getVersionString())
     
     input('这里写还未实现的功能，以后一一实现')
+    
+    passKey=input('input the decrypt key for config file:')
+    assert len(passKey)==16 or len(passKey)==24 or len(passKey)==32
+    if not isinstance(passKey, bytes):
+        passKey = passKey.encode()
+    config.cryptoKey = passKey
     
 
     #检查是否存在mysql数据库，如果不存在就创建一个

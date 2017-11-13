@@ -3,6 +3,9 @@
 #utf8编码
 
 import platform
+import base64
+
+cryptoKey=b''
 
 # observers if any
 observers = ["observer_Tipster", "observer_PriceFluctuation_TwoStock_DailyClose"]
@@ -40,15 +43,49 @@ db_entry = {'server_ip': 'localhost', \
             'password': '123456', \
             'db_name': 'tipster_db',}
 
+
+def encryptInfo(clearText, key=b''):
+    assert isinstance(clearText, str)
+    from aes import AESCrypto
+
+    if not key:
+        passKey=input('input the decrypt key:')
+        assert len(passKey)==16 or len(passKey)==24 or len(passKey)==32
+        
+        if not isinstance(passKey, bytes):
+            passKey = passKey.encode()
+    else:
+        passKey=key
+    
+    crypto = AESCrypto(passKey, b'0000000000000000')
+    ciphertext = crypto.encrypt(clearText)
+    return str(base64.b64encode(ciphertext), encoding = "utf-8")
+
+
+def decryptInfo(cipherText, key=b''):
+    assert isinstance(cipherText, str)
+    from aes import AESCrypto
+
+    if not key:
+        passKey=input('input the decrypt key:')
+        assert len(passKey)==16 or len(passKey)==24 or len(passKey)==32
+    
+        if not isinstance(passKey, bytes):
+            passKey = passKey.encode()
+    else:
+        passKey=key
+        
+    ciphertext = base64.b64decode(cipherText)
+    return AESCrypto(passKey, b'0000000000000000').decrypt(ciphertext)
+
+
 #proxy相关
 config_proxy_en='on'
 #How to create enctrypt message:
-#from aes import AESCrypto
-#crypto = AESCrypto(b'MY KEY!!!!', b'0000000000000000')      len of 'MY KEY!!!!' must be 16, 24, or 32 bytes long, and should be bytes data
-#message = json.dumps(<<<<dict or other python object>>>>)
-#ciphertext = crypto.encrypt(message)
-#print (str(base64.b64encode(ciphertext), encoding = "utf-8"))          the input is the encrypted information
+#config.encryptInfo/config.decryptInfo
 config_proxy_info = "+xIGTSdXLxw2mdsilaRypGf6hutl2ucuBdiIYKTedm+Hagojd3bOMzPqLqutDo/1vZnTUy4FIOYrTJ8NkLlvrZjVSW0rm4ptBakiL2EFufYvGVOoIlQlKQZVWTDYo61SsUvUITPMurgHW3+MgkagCOJTYnSJl/KvaJEnrmSC+X7mtThFRwDIDoZzuZDTTfH9"
+#{'mail_host': 'smtp.163.com', 'mail_user': 'XXXX', 'mail_pass': 'XXXXXX', 'sender': 'xxxxx@163.com', 'receivers': 'xxxxx@qq.com,xxxxx@163.com'}
+email_info=''
 
 #logger日志相关
 logger_console='on'
@@ -80,12 +117,6 @@ elif platform.system() == "Linux":
 else:#for mac os
     sysEnterChar='\r'
     
-    
-mail_host = 'smtp.163.com'
-mail_user = 'XXXX'
-mail_pass = 'XXXXXX'
-sender = 'xxxxx@163.com'
-receivers = 'xxxxx@qq.com,xxxxx@163.com'
 
 
 stockList={'Bank':[["601398.ss", "工商银行"],["601939.ss", "建设银行"],["601288.ss", "农业银行"],["601988.ss", "中国银行"],["600036.ss", "招商银行"],["600016.ss", "民生银行"],["600000.ss", "浦发银行"],["601328.ss", "交通银行"],["601818.ss", "光大银行"],["601169.ss", "北京银行"],["601998.ss", "中信银行"],["601166.ss", "兴业银行"],["600015.ss", "华夏银行"],["601229.ss", "上海银行"]],\
@@ -98,6 +129,8 @@ stockList={'Bank':[["601398.ss", "工商银行"],["601939.ss", "建设银行"],[
 
 def getNamebyStock(No):
     pass
+
+
 
 
 

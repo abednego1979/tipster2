@@ -18,12 +18,14 @@ __metaclass__ = type
 class MySendMail():
     def sendRes_ByMail(plain_msg):
         
+        temp_email_info = json.loads(config.decryptInfo(config.email_info, config.cryptoKey))
+        
         # 第三方 SMTP 服务
-        mail_host=config.mail_host  #设置服务器
-        mail_user=config.mail_user  #用户名
-        mail_pass=config.mail_pass  #口令
-        sender = config.sender
-        receivers = config.receivers.split(',')  # 接收邮件，可设置为你的QQ邮箱或者其他邮箱
+        mail_host=temp_email_info['mail_host']  #设置服务器
+        mail_user=temp_email_info['mail_user']  #用户名
+        mail_pass=temp_email_info['mail_pass']  #口令
+        sender = temp_email_info['sender']
+        receivers = temp_email_info['receivers'].split(',')  # 接收邮件，可设置为你的QQ邮箱或者其他邮箱
     
     
         message = MIMEText(plain_msg, 'plain', 'utf-8')
