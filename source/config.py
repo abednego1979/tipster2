@@ -55,6 +55,7 @@ def encryptInfo(clearText, key=b''):
         if not isinstance(passKey, bytes):
             passKey = passKey.encode()
     else:
+        assert isinstance(key, bytes)
         passKey=key
     
     crypto = AESCrypto(passKey, b'0000000000000000')
@@ -73,6 +74,7 @@ def decryptInfo(cipherText, key=b''):
         if not isinstance(passKey, bytes):
             passKey = passKey.encode()
     else:
+        assert isinstance(key, bytes)
         passKey=key
         
     ciphertext = base64.b64decode(cipherText)
@@ -84,8 +86,8 @@ config_proxy_en='on'
 #How to create enctrypt message:
 #config.encryptInfo/config.decryptInfo
 config_proxy_info = "+xIGTSdXLxw2mdsilaRypGf6hutl2ucuBdiIYKTedm+Hagojd3bOMzPqLqutDo/1vZnTUy4FIOYrTJ8NkLlvrZjVSW0rm4ptBakiL2EFufYvGVOoIlQlKQZVWTDYo61SsUvUITPMurgHW3+MgkagCOJTYnSJl/KvaJEnrmSC+X7mtThFRwDIDoZzuZDTTfH9"
-#{'mail_host': 'smtp.163.com', 'mail_user': 'XXXX', 'mail_pass': 'XXXXXX', 'sender': 'xxxxx@163.com', 'receivers': 'xxxxx@qq.com,xxxxx@163.com'}
-email_info=''
+#{'mail_host': 'smtp.qq.com', 'mail_port': 465, 'mail_user': 'xxxxxxxx', 'mail_pass': '授权码,不是密码', 'sender': 'xxxxxxxx@qq.com', 'receivers': 'xxxxxxxx@163.com'}
+email_info='TE9fi1aWPoyB4hCjbl/ZfMgeMTv8zV/Hhsdr6+gn200nF+DFkSYIHybZi8vdAqIDO4KmlGXIndCVl9cGc+LCgrW/K+y98JKqlFxV+C9FPKpdRcuUU9/qs8/9vFha1Ok01vNBvhqFPy4Xel2CENEOoqMEDDnf57s+xqxIDW4OgxDePl9sDhwtB5LryO2vySLH1udoCZ1nASM6QyyU/MY/grN4sy+kwkIALdsIOWGBDi0='
 
 #logger日志相关
 logger_console='on'

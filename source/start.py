@@ -200,8 +200,8 @@ class Arbitrer(object):
             try:
                 with open('MailOutInfo.txt', 'r') as pf:
                     lines=pf.read()
-                    print (">>>>>>>>>"+lines)
-                    #MySendMail().sendRes_ByMail(lines)
+                    #print (">>>>>>>>>"+lines)
+                    MySendMail().sendRes_ByMail(lines)
             except:
                 pass
             
