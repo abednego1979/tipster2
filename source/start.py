@@ -211,7 +211,7 @@ class Arbitrer(object):
             except:
                 pass
             
-            break
+            #break
 
 
 class ArbitrerCLI:
