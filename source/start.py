@@ -204,7 +204,8 @@ class Arbitrer(object):
                 with open('MailOutInfo.txt', 'r') as pf:
                     lines=pf.read()
                     #print (">>>>>>>>>"+lines)
-                    MySendMail().sendRes_ByMail(lines)
+                    if myGlobal.userChooseProxySet != 'on':
+                        MySendMail().sendRes_ByMail(lines)
             except:
                 pass
             
@@ -383,7 +384,7 @@ def main():
     
     #input('这里写还未实现的功能，以后一一实现')
     
-    passKey=input('input the decrypt key for config file:')
+    passKey=input('input the crypt key for config file:')
     assert len(passKey)==16 or len(passKey)==24 or len(passKey)==32
     if not isinstance(passKey, bytes):
         passKey = passKey.encode()

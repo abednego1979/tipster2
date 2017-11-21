@@ -45,9 +45,7 @@ class PriceFluctuation_MultiStock_DailyClose_Actor(MyDbEx, BaseFunc):
     def newTicker(self):
         #对self.stocks中所列举的股票进行计算
         myGlobal.logger.info("newTicker:%s,meanLen:%d" % (json.dumps(self.stocks), self.meanLen))
-        
-        calcPastDays=90
-        
+
         #取出各个股票收盘价
         #然后计算各股与第一个股票的收盘价比值
         #剔除inf量
@@ -93,17 +91,19 @@ class PriceFluctuation_MultiStock_DailyClose_Actor(MyDbEx, BaseFunc):
             rateFluctuation[stock]=CloseRate[stock]-rateMeans[stock]
         
         #保存到文件中  Close,CloseRate,rateMeans,rateFluctuation
-        saveData=pd.merge(Close, CloseRate.rename(index=str, columns=dict(zip(aaa,map(lambda x:"CloseRate_"+x, aaa)))), on='Date')
-        saveData=pd.merge(saveData, rateMeans.rename(index=str, columns=dict(zip(aaa,map(lambda x:"rateMeans_"+x, aaa)))), on='Date')
-        saveData=pd.merge(saveData, rateFluctuation.rename(index=str, columns=dict(zip(aaa,map(lambda x:"rateFluctuation_"+x, aaa)))), on='Date')
+        saveData=pd.merge(Close, CloseRate.rename(index=str, columns=dict(zip(self.stocks,map(lambda x:"CloseRate_"+x, self.stocks)))), on='Date')
+        saveData=pd.merge(saveData, rateMeans.rename(index=str, columns=dict(zip(self.stocks,map(lambda x:"rateMeans_"+x, self.stocks)))), on='Date')
+        saveData=pd.merge(saveData, rateFluctuation.rename(index=str, columns=dict(zip(self.stocks,map(lambda x:"rateFluctuation_"+x, self.stocks)))), on='Date')
         saveData.to_csv(self.StockClass+'_pricerate_fluctuation_multistock_'+str(self.meanLen)+'.csv')
         
         #到这里，需要的数据都已经计算并保存到文件中。
         #为了方便后期处理，这里将必要的数据进行处理
         self.result=[]
         for stock in self.stocks:
-            self.result.append([stock, rateFluctuation[stock, "The NewestDate"]])
+            self.result.append([stock, rateFluctuation[stock].tolist()[-1]])
         self.result.sort(key=lambda x:x[1], reverse=False)
+        
+        return
 
 class observer_PriceFluctuation_MultiStock_DailyClose(Observer):
     def __init__(self):
@@ -127,10 +127,8 @@ class observer_PriceFluctuation_MultiStock_DailyClose(Observer):
         for actor in self.actors:
             #每个actor的维度是（同类的一组股票，均线mean长度）
             try:
-                actor.selfLogger ('info', "<end><meanlen:%d><stockClass:%f>" % (actor.meanLen, actor.StockClass))
-                #这个actor下，对比值从低到高排序
-                
-                #myGlobal.logger.info("Best policy is stocks=%s, mean=%d, best gain is %f, the stock should buy currently is %s" % (result[0][0], result[0][1], result[0][2], result[0][3]))
+                actor.selfLogger ('info', "<end><meanlen:%d><stockClass:%s>" % (actor.meanLen, actor.StockClass))
+                myGlobal.logger.info("Best policy for MultiStocks (meanLen=%d) is buy stock %s.(%s)", actor.meanLen, actor.result[0][0], json.dumps(actor.result))
             except Exception as err:
                 print (err)
                 print(traceback.format_exc())
