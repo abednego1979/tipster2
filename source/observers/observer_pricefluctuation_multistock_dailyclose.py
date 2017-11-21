@@ -17,19 +17,17 @@ from BaseFunc import BaseFunc
 from database.DB_Ex import MyDbEx
 
 #这个Observer利用价格浮动寻找价格低点
-class PriceFluctuation_Actor(MyDbEx, BaseFunc):
-    def __init__(self, stocks, meanLen, threshold, StockClass=''):   #T:时间均线的时间长度，N:买卖点百分比阈值
-        self.stocks=stocks
-        self.StockClass=StockClass
-        self.meanLen=meanLen
-        self.threshold=threshold
-        self.LoggerPrefixString='<%s><%s><mean:%d><Th:%f>' % (self.StockClass, json.dumps(self.stocks), self.meanLen, self.threshold)
+#对于多个股票，以其中一个为基准，计算个股票的相对波动。并自动找出当前处于相对低值的股票
+#
+class PriceFluctuation_MultiStock_DailyClose_Actor(MyDbEx, BaseFunc):
+    def __init__(self, stocks, meanLen, StockClass=''):   #T:时间均线的时间长度，N:买卖点百分比阈值
+        self.stocks=stocks      #股票列表
+        self.StockClass=StockClass      #股票分类
+        self.meanLen=meanLen        #参考均线
+        self.LoggerPrefixString='<%s><%s><mean:%d>' % (self.StockClass, json.dumps(self.stocks), self.meanLen)
         
+        self.result=[]
         
-        self.curStockNo=''
-        self.curStockAmount=0
-        self.curCash=10000.0        
-        self.curProperty=self.curCash
         pass
     
     def selfLogger(self, level, OutString):
@@ -74,7 +72,6 @@ class PriceFluctuation_Actor(MyDbEx, BaseFunc):
         Close = Close.sort_values(by=['Date'])
         
         refStock=self.stocks[0]
-        otherStock=self.stocks[1]
 
         #然后计算各股与第一个股票的收盘价比值
         CloseRate=Close.copy(deep=True)
@@ -83,113 +80,62 @@ class PriceFluctuation_Actor(MyDbEx, BaseFunc):
             
         #剔除inf量,由于前面在合并数据时已经剔除了各个股票的停牌日，所以这一本来就不应该有无效值
         assert not CloseRate.isnull().values.any()
-        CloseRate=CloseRate[['Date', otherStock]]
 
         #计算比值的meanLen天均值--均比值
         rateMeans=CloseRate.copy(deep=True)
-        rateMeans[otherStock]=rateMeans[otherStock].rolling(window=self.meanLen,center=False).mean()
+        for stock in self.stocks:
+            rateMeans[stock]=rateMeans[stock].rolling(window=self.meanLen,center=False).mean()
         rateMeans.fillna(value=1.0, inplace=True)
 
         #求比值相对于比值均值的波动
         rateFluctuation=rateMeans.copy(deep=True)
-        rateFluctuation[otherStock]=CloseRate[otherStock]-rateMeans[otherStock]
+        for stock in self.stocks:
+            rateFluctuation[stock]=CloseRate[stock]-rateMeans[stock]
         
         #保存到文件中  Close,CloseRate,rateMeans,rateFluctuation
-        saveData=pd.merge(Close, CloseRate.rename(index=str, columns={otherStock: "CloseRate"}), on='Date')
-        saveData=pd.merge(saveData, rateMeans.rename(index=str, columns={otherStock: "rateMeans"}), on='Date')
-        saveData=pd.merge(saveData, rateFluctuation.rename(index=str, columns={otherStock: "rateFluctuation"}), on='Date')
-        saveData.to_csv('bank_pricerate_fluctuation_'+'_'.join(self.stocks)+'_'+str(self.meanLen)+'.csv')
+        saveData=pd.merge(Close, CloseRate.rename(index=str, columns=dict(zip(aaa,map(lambda x:"CloseRate_"+x, aaa)))), on='Date')
+        saveData=pd.merge(saveData, rateMeans.rename(index=str, columns=dict(zip(aaa,map(lambda x:"rateMeans_"+x, aaa)))), on='Date')
+        saveData=pd.merge(saveData, rateFluctuation.rename(index=str, columns=dict(zip(aaa,map(lambda x:"rateFluctuation_"+x, aaa)))), on='Date')
+        saveData.to_csv(self.StockClass+'_pricerate_fluctuation_multistock_'+str(self.meanLen)+'.csv')
         
-        
-        saveData=saveData.sort_values(by=['Date'])[['Date', refStock, otherStock, "rateFluctuation"]]
-        #取最后90天
-        opeData=saveData[-90:].to_dict('list')
-        title=list(opeData.keys())
-        opeData=np.array(list(opeData.values())).T
-        
-        for day in range(opeData.shape[0]):
-            
-            self.selfLogger ('debug', 'Data:%s' % (self.num2datestr(opeData[day,title.index('Date')])))
-            
-            #第day天
-            if opeData[day,title.index('rateFluctuation')]<=-self.threshold:
-                #如果比值低于-self.threshold,则买入目标股票，卖出参考股票
-                #sell ref stock
-                self.selfLogger ('debug', 'rateFluctuation is lower than threshold(%f<=%f)' % (opeData[day,title.index('rateFluctuation')], -self.threshold))
-                
-                if self.curStockNo==refStock:
-                    tempPrice=opeData[day,title.index(refStock)]
-                    self.curCash += (self.curStockAmount*tempPrice)*0.999     #千分之一的印花税
-                    self.selfLogger ('debug', "<Sell>:<%s><%s><%d@%f><%s>" % (self.curStockNo, self.num2datestr(opeData[day,title.index('Date')]), self.curStockAmount, tempPrice, self.curCash))
-                    self.curStockAmount=0
-                    self.curStockNo=""
-                    self.curProperty=self.curCash#记录一下最新一次变为现金的情况
-                #buy obj stock
-                if self.curStockAmount==0:
-                    self.curStockNo=otherStock
-                    tempPrice=opeData[day,title.index(otherStock)]
-                    self.curStockAmount=int(self.curCash/tempPrice)
-                    self.curCash -= self.curStockAmount*tempPrice
-                    self.selfLogger ('debug', "<Buy>:<%s><%s><%d@%f><%s>" % (self.curStockNo, self.num2datestr(opeData[day,title.index('Date')]), self.curStockAmount, tempPrice, self.curCash))                
-            elif opeData[day,title.index('rateFluctuation')]>=self.threshold:
-                #如果比值高于self.threshold，则卖出目标股票，买入参考股票
-                #sell obj stock
-                self.selfLogger ('debug', 'rateFluctuation is higher than threshold(%f>=%f)' % (opeData[day,title.index('rateFluctuation')], self.threshold))
-                if self.curStockNo==otherStock:
-                    tempPrice=opeData[day,title.index(otherStock)]
-                    self.curCash += (self.curStockAmount*tempPrice)*0.999     #千分之一的印花税
-                    self.selfLogger ('debug', "<Sell>:<%s><%s><%d@%f><%s>" % (self.curStockNo, self.num2datestr(opeData[day,title.index('Date')]), self.curStockAmount, tempPrice, self.curCash))
-                    self.curStockAmount=0
-                    self.curStockNo=""
-                    self.curProperty=self.curCash#记录一下最新一次变为现金的情况   
-                #buy ref stock
-                if self.curStockAmount==0:
-                    self.curStockNo=refStock
-                    tempPrice = opeData[day,title.index(refStock)]
-                    self.curStockAmount=int(self.curCash/tempPrice)
-                    self.curCash -= self.curStockAmount*tempPrice
-                    self.selfLogger ('debug', "<Buy>:<%s><%s><%d@%f><%s>" % (self.curStockNo, self.num2datestr(opeData[day,title.index('Date')]), self.curStockAmount, tempPrice, self.curCash))                                    
-            else:
-                #do nothing
-                self.selfLogger ('debug', 'rateFluctuation is between threshold(%f<=%f<=%f)' % (-self.threshold, opeData[day,title.index('rateFluctuation')], self.threshold))
-                pass
-        
+        #到这里，需要的数据都已经计算并保存到文件中。
+        #为了方便后期处理，这里将必要的数据进行处理
+        self.result=[]
+        for stock in self.stocks:
+            self.result.append([stock, rateFluctuation[stock, "The NewestDate"]])
+        self.result.sort(key=lambda x:x[1], reverse=False)
 
-class observer_PriceFluctuation(Observer):
+class observer_PriceFluctuation_MultiStock_DailyClose(Observer):
     def __init__(self):
         #some my code here
-        #init actor(self.actors)
         self.actors=[]
         meanLenArray=[5,8,10,12,20] #days
-        thresholdArray=[0.005,0.010,0.015,0.020]
+        #thresholdArray=[0.005,0.010,0.015,0.020]
         
         #bank stock
         stockListTemp=[item[0] for item in config.stockList['Bank']]
 
-        #用n个stock的组合，进行模拟计算
-        refStock=[stockListTemp[0]]
-        otherStocks=stockListTemp[1:]
-        for selectStocks in BaseFunc().selectElementFromList(otherStocks, 1):#任选1个股票与参考股票组合
-            paraArray=[(refStock+selectStocks, meanLen, threshold) for meanLen in meanLenArray for threshold in thresholdArray]
-            self.actors+=[PriceFluctuation_Actor(item[0], item[1], item[2], 'Bank') for item in paraArray]
-
+        paraArray=[(stockListTemp, meanLen) for meanLen in meanLenArray]
+        self.actors+=[PriceFluctuation_MultiStock_DailyClose_Actor(item[0], item[1], 'Bank') for item in paraArray]
+        
         self.threadpool = ThreadPoolExecutor(max_workers=8)
         
-        super(observer_PriceFluctuation, self).__init__()
+        super(observer_PriceFluctuation_MultiStock_DailyClose, self).__init__()
         
     def end_opportunity_finder(self):
         result=[]
         for actor in self.actors:
+            #每个actor的维度是（同类的一组股票，均线mean长度）
             try:
-                actor.selfLogger ('info', "<end><meanlen:%d><Property:%f>" % (actor.meanLen, actor.curProperty))
-                result.append([json.dumps(actor.stocks), actor.meanLen, actor.curProperty, actor.curStockNo])
+                actor.selfLogger ('info', "<end><meanlen:%d><stockClass:%f>" % (actor.meanLen, actor.StockClass))
+                #这个actor下，对比值从低到高排序
+                
+                #myGlobal.logger.info("Best policy is stocks=%s, mean=%d, best gain is %f, the stock should buy currently is %s" % (result[0][0], result[0][1], result[0][2], result[0][3]))
             except Exception as err:
                 print (err)
                 print(traceback.format_exc())
                 #actor.selfLogger ('error', err)
-        #排序result
-        result.sort(key=lambda x:x[2], reverse=True)
-        myGlobal.logger.info("Best policy is stocks=%s, mean=%d, best gain is %f, the stock should buy currently is %s" % (result[0][0], result[0][1], result[0][2], result[0][3]))
+        
         pass
                 
                 

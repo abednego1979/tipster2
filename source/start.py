@@ -191,10 +191,13 @@ class Arbitrer(object):
                 pass
             
             #获取时间，如果是某个时刻，就开始运行下面的代码
-            self.run_stocks()
-            self.run_observers()    #这里整理信息
-            self.run_realtraders()    #这里真实交易
-            #time.sleep(config.refresh_rate)
+            try:
+                self.run_stocks()
+                self.run_observers()    #这里整理信息
+                self.run_realtraders()    #这里真实交易
+                #time.sleep(config.refresh_rate)
+            except:
+                pass
             
             #发送邮件
             try:
@@ -378,7 +381,7 @@ def main():
     v=Version()
     print('Tipster(TensorFlow) '+v.getVersionString())
     
-    input('这里写还未实现的功能，以后一一实现')
+    #input('这里写还未实现的功能，以后一一实现')
     
     passKey=input('input the decrypt key for config file:')
     assert len(passKey)==16 or len(passKey)==24 or len(passKey)==32

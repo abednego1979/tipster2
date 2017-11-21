@@ -230,7 +230,11 @@ class observer_PriceFluctuation_TwoStock_DailyClose(Observer):
                             
         try:
             with open('MailOutInfo.txt', 'a') as pf:
-                pf.write(pd.DataFrame.from_csv('bank_pricerate_fluctuation_'+'_'.join(bestResult_sockList)+'_'+str(bestResult_meanLen)+'.csv')[-30:].to_json()+'\r\n')
+                pf.write(pd.DataFrame.read_csv('bank_pricerate_fluctuation_'+'_'.join(bestResult_sockList)+'_'+str(bestResult_meanLen)+'.csv')[-30:].to_json()+'\r\n')
+                #use the follow code to recreate csv
+                #jsonInfoString=''
+                #outPath='D:\\xxx.csv'
+                #pd.read_json(jsonInfoString).to_csv(outPath)
         except:
             pass
         

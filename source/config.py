@@ -8,7 +8,10 @@ import base64
 cryptoKey=b''
 
 # observers if any
-observers = ["observer_Tipster", "observer_PriceFluctuation_TwoStock_DailyClose"]
+observers = ["observer_Tipster", \
+             "observer_PriceFluctuation_TwoStock_DailyClose", \
+             "observer_PriceFluctuation_MultiStock_DailyClose"\
+             ]
 
 realtraders = ['realtrade_Template']
 
