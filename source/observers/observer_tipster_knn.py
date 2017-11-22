@@ -18,16 +18,13 @@ from BaseFunc import BaseFunc
 from database.DB_Ex import MyDbEx
 
 #在两个股票中间，根据每日收盘价寻找套利机会
-class PriceFluctuation_TwoStock_DailyClose_Actor(MyDbEx, BaseFunc):
-    def __init__(self, stocks, meanLen, threshold, StockClass=''):   #T:时间均线的时间长度，N:买卖点百分比阈值
-        self.stocks=stocks
+class Tipster_Knn_Actor(MyDbEx, BaseFunc):
+    def __init__(self, stock, refTargetPara, StockClass=''):   #T:时间均线的时间长度，N:买卖点百分比阈值
+        self.stock=stock
         self.StockClass=StockClass
-        self.meanLen=meanLen
-        self.threshold=threshold
-        self.LoggerPrefixString='<%s><%s><mean:%d><Th:%f>' % (self.StockClass, json.dumps(self.stocks), self.meanLen, self.threshold)
-        
-        
-        self.curStockNo=''
+        self.refTargetPara=refTargetPara
+        self.LoggerPrefixString='<%s><%s><KNN>' % (self.StockClass, self.stock)
+
         self.curStockAmount=0
         self.curCash=10000.0        
         self.curProperty=self.curCash
@@ -47,15 +44,13 @@ class PriceFluctuation_TwoStock_DailyClose_Actor(MyDbEx, BaseFunc):
     
     def newTicker(self):
         #对self.stocks中所列举的股票进行计算
-        myGlobal.logger.info("newTicker:%s,meanLen:%d,Th:%f" % (json.dumps(self.stocks), self.meanLen, self.threshold))
+        myGlobal.logger.info("newTicker:%s" % (self.stock))
         
         calcPastDays=90
         
-        #取出各个股票收盘价
-        #然后计算各股与第一个股票的收盘价比值
-        #剔除inf量
-        #计算比值的30天均值
-        #计算比值相对比值均值的偏差
+        #取出这个股票的各个参考信息
+        #计算最近calcPastDays天的预测准确率
+        assert 0
         
         #取出各个股票收盘价
         Close=None
@@ -159,27 +154,24 @@ class PriceFluctuation_TwoStock_DailyClose_Actor(MyDbEx, BaseFunc):
                 pass
         
 
-class observer_PriceFluctuation_TwoStock_DailyClose(Observer):
+class observer_Tipster_Knn(Observer):
     def __init__(self):
         #some my code here
         #init actor(self.actors)
         self.actors=[]
-        meanLenArray=[5,8,10,12,20] #days
-        thresholdArray=[0.005,0.006,0.007,0.008,0.009,0.010]
+        #参考的数据，如Volume#3代表要参考Volume，而距离是使用3天曲线之间的距离。
+        refTargetPara=['Volume#3', 'Volume#5', 'mean_3_RatePrice#5', 'mean_5_RatePrice#10', 'mean_10_RatePrice#20', 'mean_20_RatePrice#3', 'mean_30_RatePrice#3', 'mean_30_RatePrice#10']
+        
         
         #bank stock
         stockListTemp=[item[0] for item in config.stockList['Bank']]
-
-        #用n个stock的组合，进行模拟计算
-        refStock=[stockListTemp[0]]
-        otherStocks=stockListTemp[1:]
-        for selectStocks in BaseFunc().selectElementFromList(otherStocks, 1):#任选1个股票与参考股票组合
-            paraArray=[(refStock+selectStocks, meanLen, threshold) for meanLen in meanLenArray for threshold in thresholdArray]
-            self.actors+=[PriceFluctuation_TwoStock_DailyClose_Actor(item[0], item[1], item[2], 'Bank') for item in paraArray]
-
+        
+        #创建actor列表
+        self.actors+=[Tipster_Knn_Actor(item, refTargetPara, 'Bank') for item in stockListTemp]
+        
         self.threadpool = ThreadPoolExecutor(max_workers=8)
         
-        super(observer_PriceFluctuation_TwoStock_DailyClose, self).__init__()
+        super(observer_Tipster_Knn, self).__init__()
         
     def end_opportunity_finder(self):
         result=[]
