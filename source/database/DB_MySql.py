@@ -86,7 +86,7 @@ class MyDB_MySQL(MyDB_Base):
         return
     
     def DB_MySql_Create_SqlCmd_INSERT(self, tb_name, titleNameList, data):
-        insert='INSERT INTO '+self.__DbEx_TransSockNo2SockName__(tb_name)+' SET '
+        insert='INSERT INTO '+self.__DbEx_TransStockNo2StockName__(tb_name)+' SET '
         for title_value in zip(titleNameList, data):
             para1=title_value[1]
             if type(para1)==str:

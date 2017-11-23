@@ -32,7 +32,7 @@ class MyDbEx(MyDB_MySQL):
         return
     
     def __DbEx_CreateTable__(self, tb_name, table_construction, auto_increment=False):
-        self.DB_Base_CreateTable(self.__DbEx_TransSockNo2SockName__(tb_name), table_construction, auto_increment)
+        self.DB_Base_CreateTable(self.__DbEx_TransStockNo2StockName__(tb_name), table_construction, auto_increment)
         return
     
     def __DbEx_GetTable__(self):
@@ -40,7 +40,7 @@ class MyDbEx(MyDB_MySQL):
         
         
     def __DbEx_DropTable__(self, tb_name):
-        self.DB_Base_DropTable(self.__DbEx_TransSockNo2SockName__(tb_name))
+        self.DB_Base_DropTable(self.__DbEx_TransStockNo2StockName__(tb_name))
         return
         
         
@@ -62,12 +62,12 @@ class MyDbEx(MyDB_MySQL):
         return all_title
 
     
-    def __DbEx_TransSockNo2SockName__(self, sockNo):
-        temp=sockNo.split('.')
+    def __DbEx_TransStockNo2StockName__(self, stockNo):
+        temp=stockNo.split('.')
         if len(temp)==2 and (temp[1]=='ss' or temp[1]=='sz'):
             return temp[1]+temp[0]
         else:
-            return sockNo
+            return stockNo
     
     #############################################################
     def DbEx_Connect(self):
@@ -85,7 +85,7 @@ class MyDbEx(MyDB_MySQL):
 
         self.__DbEx_Connect__()
         
-        query = self.DB_Base_Create_SqlCmd_SELECT(self.__DbEx_TransSockNo2SockName__(tb_name), '*', '')
+        query = self.DB_Base_Create_SqlCmd_SELECT(self.__DbEx_TransStockNo2StockName__(tb_name), '*', '')
         self.db_curs.execute(query)
         names=[f[0] for f in self.db_curs.description]
 
@@ -96,7 +96,7 @@ class MyDbEx(MyDB_MySQL):
     def DbEx_GetDataByTitle(self, tb_name, titleNameList, needSort=1, outDataFormat=None):    #outDataFormat: np.float64 or np.float32
         self.__DbEx_Connect__()
         
-        query=self.DB_Base_Create_SqlCmd_SELECT(self.__DbEx_TransSockNo2SockName__(tb_name), ','.join(titleNameList), '')
+        query=self.DB_Base_Create_SqlCmd_SELECT(self.__DbEx_TransStockNo2StockName__(tb_name), ','.join(titleNameList), '')
         res=np.array(self.DB_Base_Query(query), dtype=outDataFormat)
         
         self.__DbEx_Close__()
@@ -121,7 +121,7 @@ class MyDbEx(MyDB_MySQL):
     def DbEx_GetRowByTitle_ByDate(self, tb_name, titleNameList, Date, outDataFormat=None):
         self.__DbEx_Connect__()
         
-        query=self.DB_Base_Create_SqlCmd_SELECT(self.__DbEx_TransSockNo2SockName__(tb_name), ','.join(titleNameList), 'Date=%s' % str(self.datestr2num(Date)))
+        query=self.DB_Base_Create_SqlCmd_SELECT(self.__DbEx_TransStockNo2StockName__(tb_name), ','.join(titleNameList), 'Date=%s' % str(self.datestr2num(Date)))
         res=np.array(self.DB_Base_Query(query), dtype=outDataFormat)
         
         self.__DbEx_Close__()
@@ -155,7 +155,7 @@ class MyDbEx(MyDB_MySQL):
                 para2=data[0]
                 if type(para2)==str:
                     para2='"'+para2+'"'
-                update=self.DB_Base_Create_SqlCmd_UPDATE(self.__DbEx_TransSockNo2SockName__(tb_name), titleNameList[index]+'=##0', titleNameList[0]+'=##1', para1, para2)
+                update=self.DB_Base_Create_SqlCmd_UPDATE(self.__DbEx_TransStockNo2StockName__(tb_name), titleNameList[index]+'=##0', titleNameList[0]+'=##1', para1, para2)
                 self.DB_Base_Update(update)
                     
                 
@@ -165,9 +165,9 @@ class MyDbEx(MyDB_MySQL):
             self.__DbEx_Close__()
         return
     
-    def DbEx_GetLastDate(self, sockNo):
+    def DbEx_GetLastDate(self, stockNo):
         self.__DbEx_Connect__()
-        query=self.DB_Base_Create_SqlCmd_SELECT(self.__DbEx_TransSockNo2SockName__(sockNo), 'Date', '')
+        query=self.DB_Base_Create_SqlCmd_SELECT(self.__DbEx_TransStockNo2StockName__(stockNo), 'Date', '')
         res=self.DB_Base_Query(query)              
         self.__DbEx_Close__()
         

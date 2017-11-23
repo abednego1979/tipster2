@@ -1,4 +1,4 @@
-create table recommondWeight (sockNo char(64) NOT NULL, weight_array TEXT NULL, PRIMARY KEY (sockNo))
+create table recommondWeight (stockNo char(64) NOT NULL, weight_array TEXT NULL, PRIMARY KEY (stockNo))
 
 #show all the tables
 sqlite:

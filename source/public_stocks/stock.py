@@ -47,7 +47,7 @@ class Stock(MyDbEx, BaseFunc):
         
         return titleNameList,data
     
-    def __downloadSockBaseData__(self):
+    def __downloadStockBaseData__(self):
         try:
             if not os.path.exists(config.csvDir):
                 os.makedirs(config.csvDir)
@@ -93,7 +93,7 @@ class Stock(MyDbEx, BaseFunc):
         
         pass
     
-    def __getSockExtendData__(self, allData):
+    def __getStockExtendData__(self, allData):
         allColName=myGlobal.column_Type_BaseData_Title+myGlobal.column_Type_ExtendData_Title
         
         #将数据转换为pandas格式，方便计算，并且根据日期升序排序
@@ -265,14 +265,14 @@ class Stock(MyDbEx, BaseFunc):
         return allData.as_matrix()
     
     #从我们主动整理的股票文件列表中获取股票编号列表，600006.ss
-    def getSockNoList_File(self, sockListFile):
-        df=pd.read_csv(sockListFile, encoding='gbk', header=None)
+    def getStockNoList_File(self, stockListFile):
+        df=pd.read_csv(stockListFile, encoding='gbk', header=None)
         lol=df.values.tolist()
-        sub_sock_list = ['0'*(6-len(str(item[0])))+str(item[0])+'.'+item[5] for item in lol]
+        sub_stock_list = ['0'*(6-len(str(item[0])))+str(item[0])+'.'+item[5] for item in lol]
         
-        return sub_sock_list
+        return sub_stock_list
     
-    def getSockNoList_Db(self):
+    def getStockNoList_Db(self):
         res=self.DbEx_GetDataByTitle('summary_tb', ['itemName', 'itemValue'], needSort=0)
         res_itemName=[item[0] for item in res]
         res_itemValue=[item[1] for item in res]
@@ -294,7 +294,7 @@ class Stock(MyDbEx, BaseFunc):
         
         while True:
             #全新下载这个股票的数据
-            res=self.__downloadSockBaseData__()
+            res=self.__downloadStockBaseData__()
                 
             if res:#downoad ok
                 myGlobal.logger.info(stockNo+' download OK')
@@ -315,7 +315,7 @@ class Stock(MyDbEx, BaseFunc):
     def Process_StockData(self):
         preDays_N=80
         
-        sockNo = self.stockNo
+        stockNo = self.stockNo
         
         time.sleep(random.uniform(1, 3))
         calcEngine = cpu_algorithms_engine()
@@ -340,7 +340,7 @@ class Stock(MyDbEx, BaseFunc):
         fData=self.npColMerge((fData, np.zeros((fData.shape[0],len(allColName)-fData.shape[1]))))
         
         #用fData进行批量的扩展数据计算
-        fData=self.__getSockExtendData__(fData)
+        fData=self.__getStockExtendData__(fData)
         
         #由于计算的结果可能出现nan值，这种值后继是不能插入数据库的，所以要对是否存在nan值做检查
         assert not np.isnan(fData).any()
@@ -349,13 +349,13 @@ class Stock(MyDbEx, BaseFunc):
         nowDateList=fData[:,0].tolist()
         
         #由于数据库中最后一条记录的涨幅和涨幅率是0.0，所以先更新数据库中最后一条记录的涨幅和涨幅率
-        dbRecord = self.DbEx_GetDataByTitle(sockNo, allColName, outDataFormat=np.float32)
+        dbRecord = self.DbEx_GetDataByTitle(stockNo, allColName, outDataFormat=np.float32)
         if dbRecord.shape[0]:
             #dbRecord[0][0]这天的数据的涨幅和涨幅率需要更新
             lastDate = dbRecord[0][0]
             lastPriceRaise = fData[nowDateList.index(lastDate),:][allColName.index('PriceIncrease')]
             lastPriceRaiseRate = fData[nowDateList.index(lastDate),:][allColName.index('PriceIncreaseRate')]
-            self.DbEx_UpdateItem(sockNo, ['Date', 'PriceIncrease', 'PriceIncrease'], [lastDate, lastPriceRaise, lastPriceRaiseRate], needConnect=True, needCommit=True)
+            self.DbEx_UpdateItem(stockNo, ['Date', 'PriceIncrease', 'PriceIncrease'], [lastDate, lastPriceRaise, lastPriceRaiseRate], needConnect=True, needCommit=True)
         #取出数据库中已经存在的数据，找出本次计算与数据库中数据相比，多出的那些数据，这些数据需要放入数据库
         if dbRecord.shape[0]:
             nowDateList = [nowDateList.index(item) for item in nowDateList if item>dbRecord[0][0]]        
@@ -364,7 +364,7 @@ class Stock(MyDbEx, BaseFunc):
         if fData.shape[0]:
             self.DbEx_Connect()
             for i in range(fData.shape[0]):
-                self.DbEx_InsertItem(sockNo, allColName, fData[i].tolist(), needConnect=False, needCommit=False)
+                self.DbEx_InsertItem(stockNo, allColName, fData[i].tolist(), needConnect=False, needCommit=False)
             self.DbEx_Commit()
             self.DbEx_Close()
         

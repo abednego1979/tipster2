@@ -25,13 +25,13 @@ class observer_Tipster(Observer):
     
     
     ####对数据库中的数据计算预测###########################################
-    def InitTipsterProc_Task_Core(Tid, calcEngine, sockNo, locks):
+    def InitTipsterProc_Task_Core(Tid, calcEngine, stockNo, locks):
         proc_ok_flag=False
         
-        initObj=SockDataEngine(calcEngine=calcEngine)
+        initObj=StockDataEngine(calcEngine=calcEngine)
     
         #进行预测
-        initObj.tipster_DailyProc(sockNo, locks)
+        initObj.tipster_DailyProc(stockNo, locks)
         
                 
         proc_ok_flag=True
@@ -42,18 +42,18 @@ class observer_Tipster(Observer):
 
     
     #每天的预测某个具体股票的函数
-    def tipster_DailyProc(self, sockNo, locks):
+    def tipster_DailyProc(self, stockNo, locks):
         #要参考的信息项目        
         #ColTitleUsed=['Volume', 'mean_3_RatePrice', 'mean_5_RatePrice', 'mean_10_RatePrice', 'mean_20_RatePrice', 'mean_30_RatePrice', 'mean_60_RatePrice']
         ColTitleUsed=['Volume', 'Volume', 'mean_3_RatePrice', 'mean_5_RatePrice', 'mean_10_RatePrice', 'mean_20_RatePrice', 'mean_30_RatePrice', 'mean_30_RatePrice']
         
-        self.tipster_DailyProc_Model_Softmax(sockNo, ColTitleUsed, locks)
+        self.tipster_DailyProc_Model_Softmax(stockNo, ColTitleUsed, locks)
     
     #利用已经得到的基本数据和扩展数据，进行softmax训练
-    def tipster_DailyProc_Model_Softmax(self, sockNo, ColTitleUsed, locks):
+    def tipster_DailyProc_Model_Softmax(self, stockNo, ColTitleUsed, locks):
         
         #从系数数据库中取出W和b
-        W_Coefficient, b_Coefficient=self.getRecommondCoefficient(sockNo)
+        W_Coefficient, b_Coefficient=self.getRecommondCoefficient(stockNo)
         
         #从股票数据库中取出所需的数据
         #多取的两列，Date是为了排序的需要，PriceIncreaseRate是作为kNN的分类标签
@@ -101,21 +101,21 @@ class observer_Tipster(Observer):
         #数据训练
         
         #将训练得到的W和b系数写入系数数据库
-        self.setRecommondWeight(sockNo, W_Coefficient, b_Coefficient)
+        self.setRecommondWeight(stockNo, W_Coefficient, b_Coefficient)
         
         return ColTitleUsed
         
 
 
         
-    def getRecommondCoefficient(self, sockNo):
+    def getRecommondCoefficient(self, stockNo):
         #read last weight from db file
-        colName_sockNo='sockNo'
+        colName_stockNo='stockNo'
         colName_W='W_array'
         colName_b='b_array'  
         
         self.DbEx_Connect()
-        query=self.DB_Base_Create_SqlCmd_SELECT('weight_tb', ','.join([colName_W, colName_b]), colName_sockNo+'="##0"', sockNo)
+        query=self.DB_Base_Create_SqlCmd_SELECT('weight_tb', ','.join([colName_W, colName_b]), colName_stockNo+'="##0"', stockNo)
         res=self.DB_Base_Query(query)
         self.DbEx_Close()
 
@@ -132,21 +132,21 @@ class observer_Tipster(Observer):
             return res_dict
 
         
-    def setRecommondWeight(self, sockNo, dict_weight):
+    def setRecommondWeight(self, stockNo, dict_weight):
         
-        colName_sockNo='sockNo'
+        colName_stockNo='stockNo'
         colName_weight='weight_array'
         
         #将weight_json(字符串)存入文件
         self.DbEx_Connect()
-        query=self.DB_Base_Create_SqlCmd_SELECT('weight_tb', colName_weight, colName_sockNo+'="##0"', sockNo)
+        query=self.DB_Base_Create_SqlCmd_SELECT('weight_tb', colName_weight, colName_stockNo+'="##0"', stockNo)
         res=self.DB_Base_Query(query)
         self.DbEx_Close()
         if not res:
             #insert
-            self.DbEx_InsertItem('weight_tb', [colName_sockNo, colName_weight], [sockNo, base64.b64encode(json.dumps(dict_weight))])
+            self.DbEx_InsertItem('weight_tb', [colName_stockNo, colName_weight], [stockNo, base64.b64encode(json.dumps(dict_weight))])
         else:
             #update
-            self.DbEx_UpdateItem('weight_tb', [colName_sockNo, colName_weight], [sockNo, base64.b64encode(json.dumps(dict_weight))])
+            self.DbEx_UpdateItem('weight_tb', [colName_stockNo, colName_weight], [stockNo, base64.b64encode(json.dumps(dict_weight))])
 
     

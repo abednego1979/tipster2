@@ -203,7 +203,7 @@ class observer_PriceFluctuation_TwoStock_DailyClose(Observer):
             except:
                 pass
             
-        bestResult_sockList=json.loads(result[0][0])
+        bestResult_stockList=json.loads(result[0][0])
         bestResult_meanLen=result[0][1]
         bestResult_Threshold=result[0][4]
         
@@ -213,7 +213,7 @@ class observer_PriceFluctuation_TwoStock_DailyClose(Observer):
             if fileItem[0]==os.getcwd():
                 for file in fileItem[2]:
                     if file.startswith("bank_pricerate_fluctuation_") and file.endswith(".csv"):
-                        objfilename='bank_pricerate_fluctuation_'+'_'.join(bestResult_sockList)+'_'+str(bestResult_meanLen)+'.csv'
+                        objfilename='bank_pricerate_fluctuation_'+'_'.join(bestResult_stockList)+'_'+str(bestResult_meanLen)+'.csv'
                         if file==objfilename:
                             #扩充数据
                             df = pd.read_csv(objfilename, encoding='gbk')
@@ -230,7 +230,7 @@ class observer_PriceFluctuation_TwoStock_DailyClose(Observer):
                             
         try:
             with open('MailOutInfo.txt', 'a') as pf:
-                pf.write(pd.DataFrame.read_csv('bank_pricerate_fluctuation_'+'_'.join(bestResult_sockList)+'_'+str(bestResult_meanLen)+'.csv')[-30:].to_json()+'\r\n')
+                pf.write(pd.DataFrame.read_csv('bank_pricerate_fluctuation_'+'_'.join(bestResult_stockList)+'_'+str(bestResult_meanLen)+'.csv')[-30:].to_json()+'\r\n')
                 #use the follow code to recreate csv
                 #jsonInfoString=''
                 #outPath='D:\\xxx.csv'

@@ -41,7 +41,7 @@ from public_stocks.stock import Stock
 #
 def initGlobalValue():     
     
-    #每个sock会建立一个table,每个table的表项是一样的，如下
+    #每个stock会建立一个table,每个table的表项是一样的，如下
     myGlobal.column_Type_BaseData_Title=config.downloadItemTitle
     column_Type_BaseData_DataType=["CHAR(10)"]+["FLOAT"]*(len(myGlobal.column_Type_BaseData_Title)-1)
         
@@ -83,7 +83,7 @@ class Arbitrer(object):
         
         db_handle=Stock()
         #初始化数据收集者
-        self.init_stocks(db_handle.getSockNoList_Db())
+        self.init_stocks(db_handle.getStockNoList_Db())
         self.init_observers(config.observers)       
         self.init_realtraders(config.realtraders)
         
@@ -238,7 +238,7 @@ class ArbitrerCLI:
             init_handle.__DbEx_CreateNewDB__()
             
             print('get stock no list from CSV file...')
-            stock_list = init_handle.getSockNoList_File(os.path.join('dir_baseData', 'stockList.csv'))         
+            stock_list = init_handle.getStockNoList_File(os.path.join('dir_baseData', 'stockList.csv'))         
             print('find '+str(len(stock_list))+' stocks.')
             
             print('create table for each stock...')
@@ -297,8 +297,8 @@ class ArbitrerCLI:
             
         else:
             db_handle=Stock()
-            stock_list_1 = db_handle.getSockNoList_File(os.path.join('dir_baseData', 'stockList.csv'))
-            stock_list_2 = db_handle.getSockNoList_Db()
+            stock_list_1 = db_handle.getStockNoList_File(os.path.join('dir_baseData', 'stockList.csv'))
+            stock_list_2 = db_handle.getStockNoList_Db()
             a=[item for item in stock_list_1 if item not in stock_list_2]
             b=[item for item in stock_list_2 if item not in stock_list_1]
             if a or b:
