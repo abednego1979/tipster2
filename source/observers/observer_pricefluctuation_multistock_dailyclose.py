@@ -89,6 +89,9 @@ class PriceFluctuation_MultiStock_DailyClose_Actor(MyDbEx, BaseFunc):
         rateFluctuation=rateMeans.copy(deep=True)
         for stock in self.stocks:
             rateFluctuation[stock]=CloseRate[stock]-rateMeans[stock]
+            
+        #生成便于阅读的日期格式
+        Close['DateString']=list(map(lambda x: BaseFunc().num2datestr(x), Close['Date']))
         
         #保存到文件中  Close,CloseRate,rateMeans,rateFluctuation
         saveData=pd.merge(Close, CloseRate.rename(index=str, columns=dict(zip(self.stocks,map(lambda x:"CloseRate_"+x, self.stocks)))), on='Date')
@@ -128,7 +131,7 @@ class observer_PriceFluctuation_MultiStock_DailyClose(Observer):
             #每个actor的维度是（同类的一组股票，均线mean长度）
             try:
                 actor.selfLogger ('info', "<end><meanlen:%d><stockClass:%s>" % (actor.meanLen, actor.StockClass))
-                infoString="Best policy for MultiStocks (meanLen=%d) is buy stock %s.(%s)", actor.meanLen, actor.result[0][0], json.dumps(actor.result)
+                infoString="Best policy for MultiStocks (meanLen=%d) is buy stock %s.(%s)" % (actor.meanLen, actor.result[0][0], json.dumps(actor.result))
                 myGlobal.logger.info(infoString)
                 
                 try:

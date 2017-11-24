@@ -38,6 +38,9 @@ WR_DArray = [13,34,89]
 DMI_DArray = [7,14]
 
 
+g_opencl_accelerate=0
+
+
 # [db_info]
 db_type = 'mysql'
 # [db_entry_mysql]
