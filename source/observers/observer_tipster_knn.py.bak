@@ -61,29 +61,17 @@ class Tipster_Knn_Actor(MyDbEx, BaseFunc):
         return normDataSet,ranges,minVals
     
     #kNN,求baseData对比refData中的前512条数据，计算距离最小的50个数据的labels中上涨和下跌的个数
-    #calcData:用于计算的数据
-    #startIndex:那个数据作为第一个数据
-    #curveLen:曲线段长度
-    #refDataLen:第一个数据与后面多少个数据进行比较
-    #labels:calcData对应的标签
-    #leastDistNum:取出用于判断最近距离的数据数
-    def tipster_kNN(self, calcData, startIndex, curveLen, refDataLen, labels, leastDistNum):
+    def tipster_kNN(self, baseData, refData, refDataLen, labels, leastDistNum):
         #KNN算法
         #求distance
         distances=[]
         for i in range(refDataLen):
-            #求基本数据和参考数据的距离
-            baseIndex=startIndex
-            refIndex=startIndex+1+i
-            
-            baseData=calcData[baseIndex:baseIndex+curveLen]
-            refData=calcData[refIndex:refIndex+curveLen]
-            
-            temp_data=baseData-refData
+            #求baseData和refData[i]的距离
+            temp_data=baseData-refData[i]
             temp_data=temp_data*temp_data
             distance = math.sqrt(np.sum(temp_data))
     
-            distances.append((distance, labels[startIndex+1+i]))
+            distances.append((distance, labels[i]))
     
         #基于距离进行排序
         distances.sort(key=lambda x:x[0], reverse=False)
@@ -134,13 +122,33 @@ class Tipster_Knn_Actor(MyDbEx, BaseFunc):
         calcData,ranges,minVals=self.autoNorm(calcData)
         assert calcData.dtype==np.float32
         
+        newestDateTime=dateTime[0]
+        newestLabel=labels[0]
+
+        dateTime=dateTime[1:]
+        labels=labels[1:]
+        
+        #由于用曲线做KNN的计算基本数据，所以先将数据基本单元变为曲线（数组）
+        temp_calcData=[]
+        for index in range(640-self.refTargetCurveLen+1):
+            temp_line=[]
+            for col in range(len(self.refTargetItem)):
+                temp_line.append(calcData[index:index+self.refTargetCurveLen, col])
+            temp_calcData.append(temp_line)
+        calcData=temp_calcData
+        
+        newestCalcData=calcData[0]
+        calcData=calcData[1:]
+        
         #求出预测准确率
         #用第N个数据，与N+1到N+512的数据做KNN比较，预测第N数据的走势
         tipsterRightNum=0
+        tipsterRightRate=0.0
         for index in range(calcPastDays):
-
-            #第二个参数取1+index，是由于第一个数据没有预测值，不用于计算预测准确率
-            increase_num, decrease_num=self.tipster_kNN(calcData, 1+index, self.refTargetCurveLen, 512, labels, 50)
+            baseData=calcData[index]
+            refData=calcData[index+1:]
+            
+            increase_num, decrease_num=self.tipster_kNN(baseData, refData, 512, labels[index+1:], 50)
             
             #预测上涨还是下跌
             temp_factor=(increase_num-decrease_num)*labels[index]
@@ -150,7 +158,9 @@ class Tipster_Knn_Actor(MyDbEx, BaseFunc):
         self.tipsterRightRate = tipsterRightNum*1.0/calcPastDays        #预测成功率
         
         #对最新一组数据进行预测
-        increase_num, decrease_num=self.tipster_kNN(calcData, 0, self.refTargetCurveLen, 512, labels, 50)
+        baseData=newestCalcData
+        refData=calcData
+        increase_num, decrease_num=self.tipster_kNN(baseData, refData, 512, labels, 50)
             
         if (len(distances_increase)-len(distances_decrease))>0:
             #预测会上涨
