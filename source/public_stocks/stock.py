@@ -349,22 +349,26 @@ class Stock(MyDbEx, BaseFunc):
         nowDateList=fData[:,0].tolist()
         
         #由于数据库中最后一条记录的涨幅和涨幅率是0.0，所以先更新数据库中最后一条记录的涨幅和涨幅率
-        dbRecord = self.DbEx_GetDataByTitle(stockNo, allColName, outDataFormat=np.float32)
-        if dbRecord.shape[0]:
-            #dbRecord[0][0]这天的数据的涨幅和涨幅率需要更新
-            lastDate = dbRecord[0][0]
-            lastPriceRaise = fData[nowDateList.index(lastDate),:][allColName.index('PriceIncrease')]
-            lastPriceRaiseRate = fData[nowDateList.index(lastDate),:][allColName.index('PriceIncreaseRate')]
-            self.DbEx_UpdateItem(stockNo, ['Date', 'PriceIncrease', 'PriceIncrease'], [lastDate, lastPriceRaise, lastPriceRaiseRate], needConnect=True, needCommit=True)
+        dbRecord = self.DbEx_GetDataByTitle(stockNo, ['Date'], outDataFormat=np.float32)
+        dbexistDateList=dbRecord[:, 0].tolist()
+            
         #取出数据库中已经存在的数据，找出本次计算与数据库中数据相比，多出的那些数据，这些数据需要放入数据库
-        if dbRecord.shape[0]:
-            nowDateList = [nowDateList.index(item) for item in nowDateList if item>dbRecord[0][0]]        
+        if dbexistDateList:
+            nowDateList = [nowDateList.index(item) for item in nowDateList if item>=max(dbexistDateList)]        
             fData=fData[nowDateList,:]
         
         if fData.shape[0]:
             self.DbEx_Connect()
             for i in range(fData.shape[0]):
-                self.DbEx_InsertItem(stockNo, allColName, fData[i].tolist(), needConnect=False, needCommit=False)
+                if fData[i][0] not in dbexistDateList:
+                    self.DbEx_InsertItem(stockNo, allColName, fData[i].tolist(), needConnect=False, needCommit=False)
+                else:
+                    #update
+                    #数据库中最后一天的数据的涨幅和涨幅率需要更新
+                    tempDate=fData[i][0]
+                    lastPriceRaise = fData[i][allColName.index('PriceIncrease')]
+                    lastPriceRaiseRate = fData[i][allColName.index('PriceIncreaseRate')]
+                    self.DbEx_UpdateItem(stockNo, ['Date', 'PriceIncrease', 'PriceIncreaseRate'], [fData[i][0], lastPriceRaise, lastPriceRaiseRate], needConnect=False, needCommit=False)
             self.DbEx_Commit()
             self.DbEx_Close()
         

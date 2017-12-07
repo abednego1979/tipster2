@@ -47,7 +47,7 @@ class PriceFluctuation_TwoStock_DailyClose_Actor(MyDbEx, BaseFunc):
     
     def newTicker(self):
         #对self.stocks中所列举的股票进行计算
-        myGlobal.logger.info("newTicker:%s,meanLen:%d,Th:%f" % (json.dumps(self.stocks), self.meanLen, self.threshold))
+        myGlobal.logger.info("newTicker for twostock policy:%s,meanLen:%d,Th:%f" % (json.dumps(self.stocks), self.meanLen, self.threshold))
         
         calcPastDays=90
         
@@ -164,8 +164,8 @@ class observer_PriceFluctuation_TwoStock_DailyClose(Observer):
         #some my code here
         #init actor(self.actors)
         self.actors=[]
-        meanLenArray=[5,8,10,12,20] #days
-        thresholdArray=[0.005,0.006,0.007,0.008,0.009,0.010]
+        meanLenArray=[5,8,10] #days
+        thresholdArray=[0.005,0.007,0.009]
         
         #bank stock
         stockListTemp=[item[0] for item in config.stockList['Bank']]

@@ -44,7 +44,7 @@ class PriceFluctuation_MultiStock_DailyClose_Actor(MyDbEx, BaseFunc):
     
     def newTicker(self):
         #对self.stocks中所列举的股票进行计算
-        myGlobal.logger.info("newTicker:%s,meanLen:%d" % (json.dumps(self.stocks), self.meanLen))
+        myGlobal.logger.info("newTicker for multistock policy:%s,meanLen:%d" % (json.dumps(self.stocks), self.meanLen))
 
         #取出各个股票收盘价
         #然后计算各股与第一个股票的收盘价比值
@@ -126,7 +126,6 @@ class observer_PriceFluctuation_MultiStock_DailyClose(Observer):
         super(observer_PriceFluctuation_MultiStock_DailyClose, self).__init__()
         
     def end_opportunity_finder(self):
-        result=[]
         for actor in self.actors:
             #每个actor的维度是（同类的一组股票，均线mean长度）
             try:

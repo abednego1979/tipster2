@@ -7,6 +7,7 @@ import sys
 import logging
 import json
 import traceback
+import math
 from .observer import Observer
 import myGlobal
 import config
@@ -90,7 +91,7 @@ class Tipster_Knn_Actor(MyDbEx, BaseFunc):
     
         #距离最小的50个向量对应的涨幅
         distances=distances[:leastDistNum]
-        distances=[distances[1] for item in distances]
+        distances=[item[1] for item in distances]
         #统计预测上涨和下跌的个数
         distances_increase=[item for item in distances if item>0]
         distances_decrease=[item for item in distances if item<0]        
@@ -111,7 +112,7 @@ class Tipster_Knn_Actor(MyDbEx, BaseFunc):
     
     def newTicker(self):
         #对self.stocks中所列举的股票进行计算
-        myGlobal.logger.info("newTicker:%s" % (self.stock))
+        myGlobal.logger.info("newTicker for kNN:%s" % (self.stock))
         
         calcPastDays=90
         
@@ -123,8 +124,9 @@ class Tipster_Knn_Actor(MyDbEx, BaseFunc):
         bData=self.DbEx_GetDataByTitle(self.stock, getItemTitle, outDataFormat=np.float32)
         
         if bData.shape[0]<640:
-            assert 0
-            return None      
+            self.tipsterRightRate=0.0
+            self.tipsterIncrease=False
+            return      
         
         #只取一定数量条数据计算
         dateTime=bData[:640,0]
@@ -152,10 +154,12 @@ class Tipster_Knn_Actor(MyDbEx, BaseFunc):
         #对最新一组数据进行预测
         increase_num, decrease_num=self.tipster_kNN(calcData, 0, self.refTargetCurveLen, 512, labels, 50)
             
-        if (len(distances_increase)-len(distances_decrease))>0:
+        if (increase_num-decrease_num)>0:
             #预测会上涨
             self.tipsterIncrease=True
-            pass
+        else:
+            #预测会下跌
+            self.tipsterIncrease=False
 
         return
         
@@ -192,11 +196,18 @@ class observer_Tipster_Knn(Observer):
         super(observer_Tipster_Knn, self).__init__()
         
     def end_opportunity_finder(self):
-        result=[]
         for actor in self.actors:
             try:
-                actor.selfLogger ('info', "<end><meanlen:%d><Property:%f>" % (actor.meanLen, actor.curProperty))
-                result.append([json.dumps(actor.stocks), actor.meanLen, actor.curProperty, actor.curStockNo, actor.threshold])
+                actor.selfLogger ('info', "<end><stock:%s>" % (actor.stock))
+                
+                infoString="<%s>Forecast Result is (RightRate:%f, Forecast:%s)" % (actor.stock, actor.tipsterRightRate, 'Increace' if actor.tipsterIncrease else 'Decreace')
+                myGlobal.logger.info(infoString)
+                
+                try:
+                    with open('MailOutInfo.txt', 'a') as pf:
+                        pf.write(infoString+'\r\n')
+                except:
+                    pass
                 pass
             except Exception as err:
                 print (err)

@@ -200,14 +200,14 @@ class Arbitrer(object):
                 pass
             
             #发送邮件
-            try:
-                with open('MailOutInfo.txt', 'r') as pf:
-                    lines=pf.read()
-                    #print (">>>>>>>>>"+lines)
-                    if myGlobal.userChooseProxySet != 'on':
+            if myGlobal.userChooseProxySet != 'on':
+                try:
+                    with open('MailOutInfo.txt', 'r') as pf:
+                        lines=pf.read()
+                        #print (">>>>>>>>>"+lines)
                         MySendMail().sendRes_ByMail(lines)
-            except:
-                pass
+                except:
+                    pass
             
             try:
                 #删除MailOutInfo.txt文件
