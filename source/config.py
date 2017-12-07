@@ -12,6 +12,7 @@ observers = ["observer_Tipster", \
              "observer_PriceFluctuation_TwoStock_DailyClose", \
              "observer_PriceFluctuation_MultiStock_DailyClose",\
              "observer_Tipster_Knn",\
+             #"observer_Tipster_DecisionTrees",\
              ]
 
 realtraders = ['realtrade_Template']

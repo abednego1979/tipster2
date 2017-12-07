@@ -211,7 +211,8 @@ class Arbitrer(object):
             
             try:
                 #删除MailOutInfo.txt文件
-                os.remove('MailOutInfo.txt')
+                #os.remove('MailOutInfo.txt')
+                pass
             except:
                 pass
             
