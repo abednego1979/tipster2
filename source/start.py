@@ -205,7 +205,7 @@ class Arbitrer(object):
                     with open('MailOutInfo.txt', 'r') as pf:
                         lines=pf.read()
                         #print (">>>>>>>>>"+lines)
-                        MySendMail().sendRes_ByMail(lines)
+                        MySendMail().sendRes_ByMail(lines, [])
                 except:
                     pass
             
@@ -311,7 +311,7 @@ class ArbitrerCLI:
                 
                 myGlobal.userChooseProxySet=config.config_proxy_en
                 if config.config_proxy_en=='on':
-                    proxyChoose=input('The PROXY is on, Right?(Y/N)')
+                    proxyChoose=input('The PROXY is on, Right?(Y/n)')
                     if proxyChoose=='N' or proxyChoose=='n':
                         myGlobal.userChooseProxySet='off'
                 
