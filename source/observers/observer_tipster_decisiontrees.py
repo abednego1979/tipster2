@@ -57,6 +57,49 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
     
     def newTicker(self):
         #如果当前是周末，就重新构造决策树
+        
+        
+        #决策树需要数据是分类的，但是我们的就只是数据。为了即将数据分类，又避免只考虑当前数据不考虑趋势信息。需要将基本数据转化，每个指标数据
+        #取相邻的三个数据点，三个数据点组成的折线可能是1.升降，2.升升，3.降升，4.降降，所以加工以后的数据分为4类，图形上恰好和拼音音调的4声对应，
+        #所以就叫1声，2声，3声，4声吧
+        
+        #对self.stocks中所列举的股票进行计算
+        myGlobal.logger.info("newTicker for DecisionTrees:%s" % (self.stock))
+        
+        calcPastDays=90
+        
+        #取出基本数据
+        getItemTitle=['Date', 'PriceIncreaseRate']+self.refTargetItem
+        bData=self.DbEx_GetDataByTitle(self.stock, getItemTitle, outDataFormat=np.float32)
+        
+        if bData.shape[0]<(calcPastDays+10):
+            self.tipsterRightRate=0.0
+            self.tipsterIncrease=False
+            return
+        
+        #只取一定数量条数据计算
+        dateTime=bData[:calcPastDays+10, 0]
+        labels=bData[:calcPastDays+10, 1]
+        calcData=bData[:calcPastDays+10, 2:]
+        assert calcData.dtype==np.float32
+        
+        #对数据进行分类
+        for i in range(calcPastDays):
+            #注意第一组数据没有涨跌幅，是需要预测的数据，所以不要参与决策树构建
+            
+            #第一组数据是
+            calcData[i+1]
+            #第二组数据是
+            calcData[i+2]
+            #第三组数据是
+            calcData[i+3]
+            
+            #根据数据间的对比关系得出声调
+            temp1=(calcData[i+1]-calcData[i+2])>0.0
+            temp2=(calcData[i+2]-calcData[i+3])>0.0
+            
+            
+        
         assert 0
         return
         

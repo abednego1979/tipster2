@@ -120,14 +120,15 @@ class Arbitrer(object):
             except (ImportError, AttributeError) as e:
                 print("%s realtrader name is invalid: Ignored (you should check your config file)" % (realtrader_name))    
     
-    def __get_stock_tradeinfo(self, stock):
+    def __get_stock_tradeinfo(self, paras):
+        stock=paras["stock"]
         #获得数据并存入数据库,并计算扩展数据
         print('Download Data(%s)' %(stock.stockNo))
         res=stock.Download_StockData()
         print('Proc :'+('OK' if res else 'Fail'))
         print('Proc Data')
         res=stock.Process_StockData()
-        print('Proc :'+('OK' if res else 'Fail'))     
+        print('Proc :'+('OK' if res else 'Fail'))
         
         pass
     
@@ -135,12 +136,12 @@ class Arbitrer(object):
         if False:
             futures = []
             for stock in self.stocks:
-                futures.append(self.threadpool.submit(self.__get_stock_tradeinfo, stock))
+                futures.append(self.threadpool.submit(self.__get_stock_tradeinfo, {"stock":stock}))
             wait(futures)
         else:
             for stock in self.stocks:
                 time.sleep(3)
-                self.__get_stock_tradeinfo(stock)
+                self.__get_stock_tradeinfo({"stock":stock})
         return
             
     def run_observers(self):
