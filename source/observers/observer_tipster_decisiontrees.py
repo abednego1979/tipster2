@@ -7,6 +7,7 @@ import sys
 import logging
 import json
 import traceback
+import datetime
 import math
 from .observer import Observer
 import myGlobal
@@ -38,10 +39,86 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
         self.tipsterIncrease=False
         pass
     
+    
+    ####决策树的主要算法########################################################
+    
+    #计算香农信息熵,dataSet的最后一列是lables
+    def calcShannonEnt(dataSet):
+        numEntries = len(dataSet)
+        labelCounts = {}
+        for featVec in dataSet: #the the number of unique elements and their occurance
+            currentLabel = featVec[-1]
+            if currentLabel not in labelCounts.keys(): labelCounts[currentLabel] = 0
+            labelCounts[currentLabel] += 1
+        shannonEnt = 0.0
+        for key in labelCounts:
+            prob = float(labelCounts[key])/numEntries
+            shannonEnt -= prob * log(prob,2) #log base 2
+        return shannonEnt
+    
+    #划分数据集，对dataSet各条数据的第axis列数据，如果数值等于value就提取出来。
+    #如果第axis列数据，有value1，value2，...，valueN几种情况，那么N次调用本函数可以将dataSet划分为N个子集
+    def splitDataSet(dataSet, axis, value):
+        retDataSet = []
+        for featVec in dataSet:
+            if featVec[axis] == value:
+                reducedFeatVec = featVec[:axis]     #chop out axis used for splitting
+                reducedFeatVec.extend(featVec[axis+1:])
+                retDataSet.append(reducedFeatVec)
+        return retDataSet
+    
+    #对每一列数据用splitDataSet划分数据集并用calcShannonEnt计算划分以后的熵增益，确认用哪列去划分数据最优
+    def chooseBestFeatureToSplit(dataSet):
+        numFeatures = len(dataSet[0]) - 1      #the last column is used for the labels
+        baseEntropy = calcShannonEnt(dataSet)
+        bestInfoGain = 0.0; bestFeature = -1
+        for i in range(numFeatures):        #iterate over all the features
+            featList = [example[i] for example in dataSet]#create a list of all the examples of this feature
+            uniqueVals = set(featList)       #get a set of unique values
+            newEntropy = 0.0
+            for value in uniqueVals:
+                subDataSet = splitDataSet(dataSet, i, value)
+                prob = len(subDataSet)/float(len(dataSet))
+                newEntropy += prob * calcShannonEnt(subDataSet)     
+            infoGain = baseEntropy - newEntropy     #calculate the info gain; ie reduction in entropy
+            if (infoGain > bestInfoGain):       #compare this to the best gain so far
+                bestInfoGain = infoGain         #if better than current best, set to best
+                bestFeature = i
+        return bestFeature                      #returns an integer
+    
+    #
+    def majorityCnt(classList):
+        classCount={}
+        for vote in classList:
+            if vote not in classCount.keys(): classCount[vote] = 0
+            classCount[vote] += 1
+        sortedClassCount = sorted(classCount.iteritems(), key=operator.itemgetter(1), reverse=True)
+        return sortedClassCount[0][0]
+    
+    def createTree(dataSet,labels):
+        classList = [example[-1] for example in dataSet]
+        if classList.count(classList[0]) == len(classList): 
+            return classList[0]#stop splitting when all of the classes are equal
+        if len(dataSet[0]) == 1: #stop splitting when there are no more features in dataSet
+            return majorityCnt(classList)
+        bestFeat = chooseBestFeatureToSplit(dataSet)
+        bestFeatLabel = labels[bestFeat]
+        myTree = {bestFeatLabel:{}}
+        del(labels[bestFeat])
+        featValues = [example[bestFeat] for example in dataSet]
+        uniqueVals = set(featValues)
+        for value in uniqueVals:
+            subLabels = labels[:]       #copy all of labels, so trees don't mess up existing labels
+            myTree[bestFeatLabel][value] = createTree(splitDataSet(dataSet, bestFeat, value),subLabels)
+        return myTree      
+    
+    
     #构造决策树
-    def createDecisionTrees(self, calcData, startIndex, curveLen, refDataLen, labels, leastDistNum):
+    def createDecisionTrees(self, calcData, startIndex, refDataLen, labels):
         assert 0
         return
+    
+    ############################################################
     
     def selfLogger(self, level, OutString):
         try:
@@ -66,7 +143,11 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
         #对self.stocks中所列举的股票进行计算
         myGlobal.logger.info("newTicker for DecisionTrees:%s" % (self.stock))
         
-        calcPastDays=90
+        
+        forecastDataLen=1   #预测的数据长度，肯定为1
+        testDataLen=20      #用于构造完决策树，测试正确率的数据量
+        createTreeDataLen=90#用于构造决策树的数据量
+        calcPastDays=forecastDataLen+testDataLen+createTreeDataLen
         
         #取出基本数据
         getItemTitle=['Date', 'PriceIncreaseRate']+self.refTargetItem
@@ -84,20 +165,46 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
         assert calcData.dtype==np.float32
         
         #对数据进行分类
+        tone=[]
         for i in range(calcPastDays):
-            #注意第一组数据没有涨跌幅，是需要预测的数据，所以不要参与决策树构建
-            
-            #第一组数据是
-            calcData[i+1]
-            #第二组数据是
-            calcData[i+2]
-            #第三组数据是
-            calcData[i+3]
-            
             #根据数据间的对比关系得出声调
-            temp1=(calcData[i+1]-calcData[i+2])>0.0
-            temp2=(calcData[i+2]-calcData[i+3])>0.0
+            temp=np.vstack((((calcData[i+0]-calcData[i+1])>0.0), ((calcData[i+1]-calcData[i+2])>0.0)))
+            tone_line=[]
+            for j in len(calcData.shape(1)):
+                if temp[1,i]==True and temp[0,i]==False:
+                    #1声
+                    tone_line.append(1)
+                elif temp[1,i]==True and temp[0,i]==True:
+                    #2声
+                    tone_line.append(2)
+                elif temp[1,i]==False and temp[0,i]==True:
+                    #3声
+                    tone_line.append(3)
+                else:   #temp[1,i]==False and temp[0,i]==False:
+                    #4声
+                    tone_line.append(4)
+                    
+            tone.append(tone_line)
+        calcData=np.array(tone)
+        
+        #labels也要离散化
+        labels=labels>0.0
             
+        #下面开始构造决策树
+        #用index从（forecastDataLen+testDataLen）到calcPastDays的数据构造决策树
+        self.DecisionTree=self.createDecisionTrees(calcData, forecastDataLen+testDataLen, createTreeDataLen, labels)
+        self.TreeCreateTime=datetime.datetime.today()
+
+        
+        #用index从（forecastDataLen）到（forecastDataLen+testDataLen）的数据计算决策树的预测准确率
+        for i in range(forecastDataLen, forecastDataLen+testDataLen):
+            #用calcData[i]预测，用labels[i]检查预测是否正确，计算总正确率
+            self.tipsterRightRate=0.0
+            pass
+        
+        #用决策树预测
+        #用calcData[0]预测
+        self.tipsterIncrease=False
             
         
         assert 0
