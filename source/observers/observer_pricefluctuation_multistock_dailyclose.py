@@ -137,7 +137,10 @@ class observer_PriceFluctuation_MultiStock_DailyClose(Observer):
                     with open('MailOutInfo.txt', 'a') as pf:
                         pf.write(infoString+'\r\n')
                 except:
-                    pass                
+                    pass
+                
+                objfilename=actor.StockClass+'_pricerate_fluctuation_multistock_'+str(actor.meanLen)+'.csv'
+                myGlobal.attachMailFileList.append(objfilename)
                 
             except Exception as err:
                 print (err)

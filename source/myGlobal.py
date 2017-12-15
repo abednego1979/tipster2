@@ -37,3 +37,7 @@ column_Type_ExtendData_Title=[]     #数据库中扩展信息列标题
 
 #代理服务器信息
 proxies={}
+
+
+#发通知邮件需要携带的附件文件
+attachMailFileList=[]

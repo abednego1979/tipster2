@@ -207,38 +207,17 @@ class observer_PriceFluctuation_TwoStock_DailyClose(Observer):
         bestResult_meanLen=result[0][1]
         bestResult_Threshold=result[0][4]
         
+        objfilename='bank_pricerate_fluctuation_'+'_'.join(bestResult_stockList)+'_'+str(bestResult_meanLen)+'.csv'
+        myGlobal.attachMailFileList.append(objfilename)
         
-        #删除所有非最优的数据文件，并将最优结果的数据进行进一步的扩展
-        for fileItem in os.walk(os.getcwd()):
-            if fileItem[0]==os.getcwd():
-                for file in fileItem[2]:
-                    if file.startswith("bank_pricerate_fluctuation_") and file.endswith(".csv"):
-                        objfilename='bank_pricerate_fluctuation_'+'_'.join(bestResult_stockList)+'_'+str(bestResult_meanLen)+'.csv'
-                        if file==objfilename:
-                            #扩充数据
-                            df = pd.read_csv(objfilename, encoding='gbk')
-                            addData=df[['Date', df.columns.values[1], df.columns.values[2]]].copy(deep=True)
-                            addData.columns = ['Date','UpTh','DnTh']
-                            addData['UpTh'] = bestResult_Threshold
-                            addData['DnTh'] = -bestResult_Threshold
-                            df = pd.merge(df, addData, on='Date')
-                            df.to_csv(objfilename)
-                            pass
-                        else:
-                            #删除
-                            os.remove(file)
-                            
-        try:
-            with open('MailOutInfo.txt', 'a') as pf:
-                pf.write(pd.read_csv('bank_pricerate_fluctuation_'+'_'.join(bestResult_stockList)+'_'+str(bestResult_meanLen)+'.csv')[-30:].to_json()+'\r\n')
-                #use the follow code to recreate csv
-                #jsonInfoString=''
-                #outPath='D:\\xxx.csv'
-                #pd.read_json(jsonInfoString).to_csv(outPath)
-        except Exception as err:
-            print (err)
-            print(traceback.format_exc())       
-            pass
+        #扩充数据
+        df = pd.read_csv(objfilename, encoding='gbk')        
+        addData=df[['Date', df.columns.values[1], df.columns.values[2]]].copy(deep=True)
+        addData.columns = ['Date','UpTh','DnTh']
+        addData['UpTh'] = bestResult_Threshold
+        addData['DnTh'] = -bestResult_Threshold
+        df = pd.merge(df, addData, on='Date')
+        df.to_csv(objfilename)
         
         pass
                 

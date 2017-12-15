@@ -190,6 +190,7 @@ class Arbitrer(object):
                     pf.write('Mail:\r\n')
             except:
                 pass
+            myGlobal.attachMailFileList=[]
             
             #获取时间，如果是某个时刻，就开始运行下面的代码
             try:
@@ -206,7 +207,7 @@ class Arbitrer(object):
                     with open('MailOutInfo.txt', 'r') as pf:
                         lines=pf.read()
                         #print (">>>>>>>>>"+lines)
-                        MySendMail().sendRes_ByMail(lines, [])
+                        MySendMail().sendRes_ByMail(lines, myGlobal.attachMailFileList)
                 except:
                     pass
             

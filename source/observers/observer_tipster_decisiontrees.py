@@ -43,7 +43,7 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
     ####决策树的主要算法########################################################
     
     #计算香农信息熵,dataSet的最后一列是lables
-    def calcShannonEnt(dataSet):
+    def calcShannonEnt(self, dataSet):
         numEntries = len(dataSet)
         labelCounts = {}
         for featVec in dataSet: #the the number of unique elements and their occurance
@@ -58,7 +58,7 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
     
     #划分数据集，对dataSet各条数据的第axis列数据，如果数值等于value就提取出来。
     #如果第axis列数据，有value1，value2，...，valueN几种情况，那么N次调用本函数可以将dataSet划分为N个子集
-    def splitDataSet(dataSet, axis, value):
+    def splitDataSet(self, dataSet, axis, value):
         retDataSet = []
         for featVec in dataSet:
             if featVec[axis] == value:
@@ -68,18 +68,18 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
         return retDataSet
     
     #对每一列数据用splitDataSet划分数据集并用calcShannonEnt计算划分以后的熵增益，确认用哪列去划分数据最优
-    def chooseBestFeatureToSplit(dataSet):
+    def chooseBestFeatureToSplit(self, dataSet):
         numFeatures = len(dataSet[0]) - 1      #the last column is used for the labels
-        baseEntropy = calcShannonEnt(dataSet)
+        baseEntropy = self.calcShannonEnt(dataSet)
         bestInfoGain = 0.0; bestFeature = -1
         for i in range(numFeatures):        #iterate over all the features
             featList = [example[i] for example in dataSet]#create a list of all the examples of this feature
             uniqueVals = set(featList)       #get a set of unique values
             newEntropy = 0.0
             for value in uniqueVals:
-                subDataSet = splitDataSet(dataSet, i, value)
+                subDataSet = self.splitDataSet(dataSet, i, value)
                 prob = len(subDataSet)/float(len(dataSet))
-                newEntropy += prob * calcShannonEnt(subDataSet)     
+                newEntropy += prob * self.calcShannonEnt(subDataSet)     
             infoGain = baseEntropy - newEntropy     #calculate the info gain; ie reduction in entropy
             if (infoGain > bestInfoGain):       #compare this to the best gain so far
                 bestInfoGain = infoGain         #if better than current best, set to best
@@ -87,7 +87,7 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
         return bestFeature                      #returns an integer
     
     #
-    def majorityCnt(classList):
+    def majorityCnt(self, classList):
         classCount={}
         for vote in classList:
             if vote not in classCount.keys(): classCount[vote] = 0
@@ -95,13 +95,14 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
         sortedClassCount = sorted(classCount.iteritems(), key=operator.itemgetter(1), reverse=True)
         return sortedClassCount[0][0]
     
-    def createTree(dataSet,labels):
+    #这里的参数labels是各列数据的标题
+    def createTree(self, dataSet,labels):
         classList = [example[-1] for example in dataSet]
         if classList.count(classList[0]) == len(classList): 
             return classList[0]#stop splitting when all of the classes are equal
         if len(dataSet[0]) == 1: #stop splitting when there are no more features in dataSet
-            return majorityCnt(classList)
-        bestFeat = chooseBestFeatureToSplit(dataSet)
+            return self.majorityCnt(classList)
+        bestFeat = self.chooseBestFeatureToSplit(dataSet)
         bestFeatLabel = labels[bestFeat]
         myTree = {bestFeatLabel:{}}
         del(labels[bestFeat])
@@ -109,14 +110,26 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
         uniqueVals = set(featValues)
         for value in uniqueVals:
             subLabels = labels[:]       #copy all of labels, so trees don't mess up existing labels
-            myTree[bestFeatLabel][value] = createTree(splitDataSet(dataSet, bestFeat, value),subLabels)
-        return myTree      
+            myTree[bestFeatLabel][value] = self.createTree(self.splitDataSet(dataSet, bestFeat, value),subLabels)
+        return myTree
     
     
     #构造决策树
-    def createDecisionTrees(self, calcData, startIndex, refDataLen, labels):
-        assert 0
-        return
+    def createDecisionTrees(self, calcData, calcDataTitles, startIndex, refDataLen, labels):
+        dataSet=np.hstack((calcData, labels[:,np.newaxis]))
+        dataSet=dataSet[startIndex:startIndex+refDataLen, :]
+        return self.createTree(dataSet, calcDataTitles+['lables'])
+    
+    def classify(inputTree,featLabels,testVec):
+        firstStr = inputTree.keys()[0]
+        secondDict = inputTree[firstStr]
+        featIndex = featLabels.index(firstStr)
+        key = testVec[featIndex]
+        valueOfFeat = secondDict[key]
+        if isinstance(valueOfFeat, dict): 
+            classLabel = classify(valueOfFeat, featLabels, testVec)
+        else: classLabel = valueOfFeat
+        return classLabel
     
     ############################################################
     
@@ -192,7 +205,8 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
             
         #下面开始构造决策树
         #用index从（forecastDataLen+testDataLen）到calcPastDays的数据构造决策树
-        self.DecisionTree=self.createDecisionTrees(calcData, forecastDataLen+testDataLen, createTreeDataLen, labels)
+        calcDataTitles=self.refTargetItem
+        self.DecisionTree=self.createDecisionTrees(calcData, calcDataTitles, forecastDataLen+testDataLen, createTreeDataLen, labels)
         self.TreeCreateTime=datetime.datetime.today()
 
         
