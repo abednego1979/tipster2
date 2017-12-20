@@ -9,6 +9,7 @@ import json
 import traceback
 import datetime
 import math
+import operator
 from .observer import Observer
 import myGlobal
 import config
@@ -53,7 +54,7 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
         shannonEnt = 0.0
         for key in labelCounts:
             prob = float(labelCounts[key])/numEntries
-            shannonEnt -= prob * log(prob,2) #log base 2
+            shannonEnt -= prob * math.log(prob,2) #log base 2
         return shannonEnt
     
     #划分数据集，对dataSet各条数据的第axis列数据，如果数值等于value就提取出来。
@@ -116,7 +117,7 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
     
     #构造决策树
     def createDecisionTrees(self, calcData, calcDataTitles, startIndex, refDataLen, labels):
-        dataSet=np.hstack((calcData, labels[:,np.newaxis]))
+        dataSet=np.hstack((calcData, labels[:calcData.shape[0]][:,np.newaxis]))
         dataSet=dataSet[startIndex:startIndex+refDataLen, :]
         return self.createTree(dataSet, calcDataTitles+['lables'])
     
@@ -183,17 +184,17 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
             #根据数据间的对比关系得出声调
             temp=np.vstack((((calcData[i+0]-calcData[i+1])>0.0), ((calcData[i+1]-calcData[i+2])>0.0)))
             tone_line=[]
-            for j in len(calcData.shape(1)):
-                if temp[1,i]==True and temp[0,i]==False:
+            for j in range(calcData.shape[1]):
+                if temp[1,j]==True and temp[0,j]==False:
                     #1声
                     tone_line.append(1)
-                elif temp[1,i]==True and temp[0,i]==True:
+                elif temp[1,j]==True and temp[0,j]==True:
                     #2声
                     tone_line.append(2)
-                elif temp[1,i]==False and temp[0,i]==True:
+                elif temp[1,j]==False and temp[0,j]==True:
                     #3声
                     tone_line.append(3)
-                else:   #temp[1,i]==False and temp[0,i]==False:
+                else:   #temp[1,j]==False and temp[0,j]==False:
                     #4声
                     tone_line.append(4)
                     
@@ -231,7 +232,7 @@ class observer_Tipster_DecisionTrees(Observer):
         #init actor(self.actors)
         self.actors=[]
         #参考的数据
-        refTargetItem=['Volume', 'Volume', 'mean_3_RatePrice', 'mean_5_RatePrice', 'mean_10_RatePrice', 'mean_20_RatePrice', 'mean_30_RatePrice']
+        refTargetItem=['Volume', 'mean_3_RatePrice', 'mean_5_RatePrice', 'mean_10_RatePrice', 'mean_20_RatePrice', 'mean_30_RatePrice']
         
         
         calcEngine_type='CPU'
