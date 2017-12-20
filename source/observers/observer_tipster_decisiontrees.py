@@ -119,16 +119,17 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
     def createDecisionTrees(self, calcData, calcDataTitles, startIndex, refDataLen, labels):
         dataSet=np.hstack((calcData, labels[:calcData.shape[0]][:,np.newaxis]))
         dataSet=dataSet[startIndex:startIndex+refDataLen, :]
-        return self.createTree(dataSet, calcDataTitles+['lables'])
+        #createTree接受的数据是list形式
+        return self.createTree(dataSet.tolist(), calcDataTitles)
     
-    def classify(inputTree,featLabels,testVec):
+    def classify(self, inputTree,featLabels,testVec):
         firstStr = inputTree.keys()[0]
         secondDict = inputTree[firstStr]
         featIndex = featLabels.index(firstStr)
         key = testVec[featIndex]
         valueOfFeat = secondDict[key]
         if isinstance(valueOfFeat, dict): 
-            classLabel = classify(valueOfFeat, featLabels, testVec)
+            classLabel = self.classify(valueOfFeat, featLabels, testVec)
         else: classLabel = valueOfFeat
         return classLabel
     
@@ -212,17 +213,19 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
 
         
         #用index从（forecastDataLen）到（forecastDataLen+testDataLen）的数据计算决策树的预测准确率
+        rightCount=0
         for i in range(forecastDataLen, forecastDataLen+testDataLen):
             #用calcData[i]预测，用labels[i]检查预测是否正确，计算总正确率
-            self.tipsterRightRate=0.0
-            pass
+            temp_forecast=self.classify(self.DecisionTree, calcDataTitles, calcData[i].tolist)
+            if not(temp_forecast ^ labels[i]):
+                rightCount+=1
         
+        self.tipsterRightRate=1.0*rightCount/testDataLen
+                
         #用决策树预测
         #用calcData[0]预测
-        self.tipsterIncrease=False
-            
-        
-        assert 0
+        self.tipsterIncrease=self.classify(self.DecisionTree, calcDataTitles, calcData[0].tolist)
+
         return
         
 
