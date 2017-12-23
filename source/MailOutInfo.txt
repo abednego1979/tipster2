@@ -1,4 +1,0 @@
-Mail:
-Best 1 policy is stocks=["601398.ss", "601939.ss"], mean=10, th=0.007000, best gain is 11555.253986, the stock should buy currently is 601398.ss
-Best 2 policy is stocks=["601398.ss", "601939.ss"], mean=10, th=0.009000, best gain is 11470.118379, the stock should buy currently is 601398.ss
-Best 3 policy is stocks=["601398.ss", "600036.ss"], mean=5, th=0.007000, best gain is 11323.629421, the stock should buy currently is 601398.ss
