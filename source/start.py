@@ -19,7 +19,6 @@ import configparser
 import myGlobal
 from CalcEngine_CPU import *
 from version import Version
-from info_output.Drawing import MyDrawing
 from info_output.sendMail import MySendMail
 
 import argparse

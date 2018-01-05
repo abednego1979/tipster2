@@ -111,6 +111,7 @@ logger_file_level='DEBUG'
 downloadItemTitle = ["Date", "Open", "High", "Low", "Close", "Volume", "AdjClose"]
 
 csvDir='dir_download'
+tempOutDataDir='dir_temp_data'
 
 
 g_data_daylen_of_predict = 20

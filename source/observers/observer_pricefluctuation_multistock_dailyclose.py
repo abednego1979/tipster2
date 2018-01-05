@@ -1,7 +1,7 @@
 #*- coding: utf-8 -*-
 #Python 3.5.x
 #utf8编码
-
+import os
 import sys
 import logging
 import json
@@ -97,7 +97,7 @@ class PriceFluctuation_MultiStock_DailyClose_Actor(MyDbEx, BaseFunc):
         saveData=pd.merge(Close, CloseRate.rename(index=str, columns=dict(zip(self.stocks,map(lambda x:"CloseRate_"+x, self.stocks)))), on='Date')
         saveData=pd.merge(saveData, rateMeans.rename(index=str, columns=dict(zip(self.stocks,map(lambda x:"rateMeans_"+x, self.stocks)))), on='Date')
         saveData=pd.merge(saveData, rateFluctuation.rename(index=str, columns=dict(zip(self.stocks,map(lambda x:"rateFluctuation_"+x, self.stocks)))), on='Date')
-        saveData.to_csv(self.StockClass+'_pricerate_fluctuation_multistock_'+str(self.meanLen)+'.csv')
+        saveData.to_csv(os.path.join(config.tempOutDataDir, self.StockClass+'_pricerate_fluctuation_multistock_'+str(self.meanLen)+'.csv'))
         
         #到这里，需要的数据都已经计算并保存到文件中。
         #为了方便后期处理，这里将必要的数据进行处理
@@ -139,13 +139,41 @@ class observer_PriceFluctuation_MultiStock_DailyClose(Observer):
                 except:
                     pass
                 
-                objfilename=actor.StockClass+'_pricerate_fluctuation_multistock_'+str(actor.meanLen)+'.csv'
+                objfilename=os.path.join(config.tempOutDataDir, actor.StockClass+'_pricerate_fluctuation_multistock_'+str(actor.meanLen)+'.csv')
                 myGlobal.attachMailFileList.append(objfilename)
                 
             except Exception as err:
                 print (err)
                 print(traceback.format_exc())
                 #actor.selfLogger ('error', err)
+                
+        #这里进行绘图
+        for actor in self.actors:
+            try:
+                if actor.meanLen != self.meanLenArray[0]:
+                    continue
+                
+                bestThreeStock=[item for item in actor.result if item[0]!=config.stockList[actor.StockClass][0][0]]
+                
+                
+                #读取actor.StockClass+'_pricerate_fluctuation_multistock_'+str(actor.meanLen)+'.csv'文件
+                objfilename=objfilename=os.path.join(config.tempOutDataDir, actor.StockClass+'_pricerate_fluctuation_multistock_'+str(actor.meanLen)+'.csv')
+                df = pd.read_csv(objfilename, encoding='gbk')
+                #获取bestThreeStock[0]，bestThreeStock[1]，bestThreeStock[2]三个stock的rateFluctuation_60xxxx.ss曲线
+                drawData=df[['rateFluctuation_'+bestThreeStock[i] for i in range(3)]].copy(deep=True)
+                
+                xLen=30
+                x=np.array(range(xLen))
+                yList=[np.array(drawData['rateFluctuation_'+bestThreeStock[i]])[-xLen:] for i in range(3)]
+                jpgFilename=objfilename.replace('.csv', '.jpg')
+                MyDrawing().drawCurve(x, yList, outfile=jpgFilename, title=actor.StockClass+'_'+str(actor.meanLen), xlabel='Date', ylabel='Values')
+                myGlobal.attachMailFileList.append(jpgFilename)
+                
+            except Exception as err:
+                print (err)
+                print(traceback.format_exc())
+                
+
         
         pass
                 

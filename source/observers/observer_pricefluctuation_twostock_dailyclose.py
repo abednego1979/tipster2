@@ -16,6 +16,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 
 from BaseFunc import BaseFunc
 from database.DB_Ex import MyDbEx
+from info_output.Drawing import MyDrawing
 
 #在两个股票中间，根据每日收盘价寻找套利机会
 class PriceFluctuation_TwoStock_DailyClose_Actor(MyDbEx, BaseFunc):
@@ -102,8 +103,7 @@ class PriceFluctuation_TwoStock_DailyClose_Actor(MyDbEx, BaseFunc):
         saveData=pd.merge(Close, CloseRate.rename(index=str, columns={otherStock: "CloseRate"}), on='Date')
         saveData=pd.merge(saveData, rateMeans.rename(index=str, columns={otherStock: "rateMeans"}), on='Date')
         saveData=pd.merge(saveData, rateFluctuation.rename(index=str, columns={otherStock: "rateFluctuation"}), on='Date')
-        saveData.to_csv('bank_pricerate_fluctuation_'+'_'.join(self.stocks)+'_'+str(self.meanLen)+'.csv')
-        
+        saveData.to_csv(os.path.join(config.tempOutDataDir, 'bank_pricerate_fluctuation_'+'_'.join(self.stocks)+'_'+str(self.meanLen)+'.csv'))
         
         saveData=saveData.sort_values(by=['Date'])[['Date', refStock, otherStock, "rateFluctuation"]]
         #取最后90天
@@ -164,8 +164,10 @@ class observer_PriceFluctuation_TwoStock_DailyClose(Observer):
         #some my code here
         #init actor(self.actors)
         self.actors=[]
-        meanLenArray=[5,8,10] #days
-        thresholdArray=[0.005,0.007,0.009]
+        #meanLenArray=[5,8,10] #days
+        meanLenArray=[5] #days
+        #thresholdArray=[0.005,0.007,0.009]
+        thresholdArray=[0.005]
         
         #bank stock
         stockListTemp=[item[0] for item in config.stockList['Bank']]
@@ -207,17 +209,25 @@ class observer_PriceFluctuation_TwoStock_DailyClose(Observer):
         bestResult_meanLen=result[0][1]
         bestResult_Threshold=result[0][4]
         
-        objfilename='bank_pricerate_fluctuation_'+'_'.join(bestResult_stockList)+'_'+str(bestResult_meanLen)+'.csv'
+        objfilename=os.path.join(config.tempOutDataDir, 'bank_pricerate_fluctuation_'+'_'.join(bestResult_stockList)+'_'+str(bestResult_meanLen)+'.csv')
         myGlobal.attachMailFileList.append(objfilename)
         
-        #扩充数据
+        #对最优的结果进行扩充数据
         df = pd.read_csv(objfilename, encoding='gbk')        
-        addData=df[['Date', df.columns.values[1], df.columns.values[2]]].copy(deep=True)
-        addData.columns = ['Date','UpTh','DnTh']
+        addData=df[['Date', df.columns.values[1], df.columns.values[2], 'rateFluctuation']].copy(deep=True)
+        addData.columns = ['Date','UpTh','DnTh', 'rateFluctuation']
         addData['UpTh'] = bestResult_Threshold
         addData['DnTh'] = -bestResult_Threshold
         df = pd.merge(df, addData, on='Date')
         df.to_csv(objfilename)
+        
+        #这里进行绘图
+        xLen=30
+        x=np.array(range(xLen))
+        yList=[np.array(addData['rateFluctuation'])[-xLen:], np.array(addData['UpTh'])[-xLen:], np.array(addData['DnTh'])[-xLen:]]
+        jpgFilename=objfilename.replace('.csv', '.jpg')
+        MyDrawing().drawCurve(x, yList, outfile=jpgFilename, title='_'.join(bestResult_stockList), xlabel='Date', ylabel='Values')
+        myGlobal.attachMailFileList.append(jpgFilename)
         
         pass
                 
