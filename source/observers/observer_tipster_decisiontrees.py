@@ -20,6 +20,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from BaseFunc import BaseFunc
 from database.DB_Ex import MyDbEx
 from CalcEngine_CPU import *
+from .decisionTreePlotter import createPlot
 
 #在两个股票中间，根据每日收盘价寻找套利机会
 class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
@@ -122,16 +123,37 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
         #createTree接受的数据是list形式
         return self.createTree(dataSet.tolist(), calcDataTitles)
     
-    def classify(self, inputTree,featLabels,testVec):
-        firstStr = inputTree.keys()[0]
+    #创建树以后，并不是每个子树能包含所有可能的数据分类。这是由于训练样本有限，而测试或计算样本可能有异类
+    def classify(self, inputTree,featLabels,testVec,missCount=0):
+        firstStr = list(inputTree.keys())[0]
         secondDict = inputTree[firstStr]
         featIndex = featLabels.index(firstStr)
         key = testVec[featIndex]
-        valueOfFeat = secondDict[key]
-        if isinstance(valueOfFeat, dict): 
-            classLabel = self.classify(valueOfFeat, featLabels, testVec)
-        else: classLabel = valueOfFeat
-        return classLabel
+        
+        if key in secondDict.keys():
+            valueOfFeat = secondDict[key]
+            if isinstance(valueOfFeat, dict): 
+                missCount,classLabel = self.classify(valueOfFeat, featLabels, testVec, missCount)
+            else:
+                classLabel = valueOfFeat
+        else:
+            missCount+=1
+            #当创建的树没有需要的分支，就对其余的所有分支进行进一步的预测，最后取各个分支预测结果中miss次数最少的，
+            #如果有多个分支的预测结果miss最少，就对结果设置为难于预测或加权相加
+            res=[]
+            for curKey in secondDict.keys():
+                valueOfFeat = secondDict[curKey]
+                if isinstance(valueOfFeat, dict): 
+                    missCount,classLabel = self.classify(valueOfFeat, featLabels, testVec, missCount)
+                else:
+                    classLabel = valueOfFeat                    
+                res.append([missCount, classLabel])
+            missCount=min([item[0] for item in res])
+            res=[item[1] for item in res if item[0]==missCount]
+            
+            classLabel=sum(res)/len(res)
+                
+        return missCount,classLabel
     
     ############################################################
     
@@ -207,24 +229,38 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
             
         #下面开始构造决策树
         #用index从（forecastDataLen+testDataLen）到calcPastDays的数据构造决策树
-        calcDataTitles=self.refTargetItem
+        calcDataTitles=self.refTargetItem[:]
         self.DecisionTree=self.createDecisionTrees(calcData, calcDataTitles, forecastDataLen+testDataLen, createTreeDataLen, labels)
         self.TreeCreateTime=datetime.datetime.today()
+        
+        #显示构造的树
+        #createPlot(self.DecisionTree)
 
         
         #用index从（forecastDataLen）到（forecastDataLen+testDataLen）的数据计算决策树的预测准确率
+        calcDataTitles=self.refTargetItem[:]
         rightCount=0
+        errorCount=0
+        uncertainCount=0
         for i in range(forecastDataLen, forecastDataLen+testDataLen):
             #用calcData[i]预测，用labels[i]检查预测是否正确，计算总正确率
-            temp_forecast=self.classify(self.DecisionTree, calcDataTitles, calcData[i].tolist)
-            if not(temp_forecast ^ labels[i]):
-                rightCount+=1
+            temp_missCount, temp_forecast=self.classify(self.DecisionTree, calcDataTitles, calcData[i].tolist())            
+            if temp_forecast<=0.05 or temp_forecast>=0.95:
+                temp_forecast=True if temp_forecast>=0.95 else False
+                if not(temp_forecast ^ labels[i]):
+                    rightCount+=1
+                else:
+                    errorCount+=1
+            else:
+                uncertainCount+=1
         
-        self.tipsterRightRate=1.0*rightCount/testDataLen
+        self.tipsterRightRate=(1.0*rightCount+0.5*uncertainCount)/testDataLen
                 
         #用决策树预测
         #用calcData[0]预测
-        self.tipsterIncrease=self.classify(self.DecisionTree, calcDataTitles, calcData[0].tolist)
+        calcDataTitles=self.refTargetItem[:]
+        temp_missCount, temp_forecast=self.classify(self.DecisionTree, calcDataTitles, calcData[0].tolist())
+        self.tipsterIncrease = temp_forecast
 
         return
         
