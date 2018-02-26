@@ -15,6 +15,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 
 from BaseFunc import BaseFunc
 from database.DB_Ex import MyDbEx
+from info_output.Drawing import MyDrawing
 
 #这个Observer利用价格浮动寻找价格低点
 #对于多个股票，以其中一个为基准，计算个股票的相对波动。并自动找出当前处于相对低值的股票
@@ -112,13 +113,13 @@ class observer_PriceFluctuation_MultiStock_DailyClose(Observer):
     def __init__(self):
         #some my code here
         self.actors=[]
-        meanLenArray=[5,8,10,12,20] #days
+        self.meanLenArray=[5,8,10,12,20] #days
         #thresholdArray=[0.005,0.010,0.015,0.020]
         
         #bank stock
         stockListTemp=[item[0] for item in config.stockList['Bank']]
 
-        paraArray=[(stockListTemp, meanLen) for meanLen in meanLenArray]
+        paraArray=[(stockListTemp, meanLen) for meanLen in self.meanLenArray]
         self.actors+=[PriceFluctuation_MultiStock_DailyClose_Actor(item[0], item[1], 'Bank') for item in paraArray]
         
         self.threadpool = ThreadPoolExecutor(max_workers=8)
@@ -159,12 +160,12 @@ class observer_PriceFluctuation_MultiStock_DailyClose(Observer):
                 #读取actor.StockClass+'_pricerate_fluctuation_multistock_'+str(actor.meanLen)+'.csv'文件
                 objfilename=objfilename=os.path.join(config.tempOutDataDir, actor.StockClass+'_pricerate_fluctuation_multistock_'+str(actor.meanLen)+'.csv')
                 df = pd.read_csv(objfilename, encoding='gbk')
-                #获取bestThreeStock[0]，bestThreeStock[1]，bestThreeStock[2]三个stock的rateFluctuation_60xxxx.ss曲线
-                drawData=df[['rateFluctuation_'+bestThreeStock[i] for i in range(3)]].copy(deep=True)
+                #获取bestThreeStock[0][0]，bestThreeStock[1][0]，bestThreeStock[2][0]三个stock的rateFluctuation_60xxxx.ss曲线
+                drawData=df[['rateFluctuation_'+bestThreeStock[i][0] for i in range(3)]].copy(deep=True)
                 
                 xLen=30
                 x=np.array(range(xLen))
-                yList=[np.array(drawData['rateFluctuation_'+bestThreeStock[i]])[-xLen:] for i in range(3)]
+                yList=[np.array(drawData['rateFluctuation_'+bestThreeStock[i][0]])[-xLen:] for i in range(3)]
                 jpgFilename=objfilename.replace('.csv', '.jpg')
                 MyDrawing().drawCurve(x, yList, outfile=jpgFilename, title=actor.StockClass+'_'+str(actor.meanLen), xlabel='Date', ylabel='Values')
                 myGlobal.attachMailFileList.append(jpgFilename)

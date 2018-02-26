@@ -94,7 +94,7 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
         for vote in classList:
             if vote not in classCount.keys(): classCount[vote] = 0
             classCount[vote] += 1
-        sortedClassCount = sorted(classCount.iteritems(), key=operator.itemgetter(1), reverse=True)
+        sortedClassCount = sorted(classCount.items(), key=operator.itemgetter(1), reverse=True)
         return sortedClassCount[0][0]
     
     #这里的参数labels是各列数据的标题
