@@ -13,7 +13,7 @@ observers = ["observer_Tipster", \
              "observer_PriceFluctuation_MultiStock_DailyClose",\
              "observer_Tipster_Knn",\
              "observer_Tipster_DecisionTrees",\
-             #"observer_Tipster_Logistic",\
+             "observer_Tipster_Logistic",\
              ]
 
 realtraders = ['realtrade_Template']

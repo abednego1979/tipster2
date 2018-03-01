@@ -21,36 +21,6 @@ from BaseFunc import BaseFunc
 from database.DB_Ex import MyDbEx
 from CalcEngine_CPU import *
 
-
-
-def loadDataSet():
-    dataMat = []; labelMat = []
-    fr = open('testSet.txt')
-    for line in fr.readlines():
-        lineArr = line.strip().split()
-        dataMat.append([1.0, float(lineArr[0]), float(lineArr[1])])
-        labelMat.append(int(lineArr[2]))
-    return dataMat,labelMat
-
-def sigmoid(inX):
-    return 1.0/(1+np.exp(-inX))
-
-def gradAscent(dataMatIn, classLabels):
-    dataMatrix = np.mat(dataMatIn)             #convert to NumPy matrix
-    labelMat = np.mat(classLabels).transpose() #convert to NumPy matrix
-    m,n = np.shape(dataMatrix)
-    alpha = 0.001
-    maxCycles = 500
-    weights = np.ones((n,1))
-    for k in range(maxCycles):              #heavy on matrix operations
-        h = sigmoid(dataMatrix*weights)     #matrix mult
-        error = (labelMat - h)              #vector subtraction
-        weights = weights + alpha * dataMatrix.transpose()* error #matrix mult
-    return weights
-
-
-
-
 #在两个股票中间，根据每日收盘价寻找套利机会
 class Tipster_Logistic_Actor(MyDbEx, BaseFunc):
     def __init__(self, stock, refTargetItem, calcEngine, StockClass=''):   #T:时间均线的时间长度，N:买卖点百分比阈值
@@ -72,6 +42,36 @@ class Tipster_Logistic_Actor(MyDbEx, BaseFunc):
     
     
     ####回归Logistic的主要算法########################################################
+    
+    def sigmoid(self, inX):
+        return 1.0/(1+np.exp(-inX))    
+    
+    def gradAscent(self, dataMatIn, classLabels):
+        dataMatrix = np.mat(dataMatIn)             #convert to NumPy matrix
+        labelMat = np.mat(classLabels).transpose() #convert to NumPy matrix
+        m,n = np.shape(dataMatrix)
+        alpha = 0.001
+        maxCycles = 500
+        weights = np.ones((n,1))
+        for k in range(maxCycles):              #heavy on matrix operations
+            h = self.sigmoid(dataMatrix*weights)     #matrix mult
+            error = (labelMat - h)              #vector subtraction
+            weights = weights + alpha * dataMatrix.transpose()* error #matrix mult
+        return weights
+    
+    def stocGradAscent1(self, dataMatrix, classLabels, numIter=150):
+        m,n = shape(dataMatrix)
+        weights = ones(n)   #initialize to all ones
+        for j in range(numIter):
+            dataIndex = range(m)
+            for i in range(m):
+                alpha = 4/(1.0+j+i)+0.0001    #apha decreases with iteration, does not 
+                randIndex = int(random.uniform(0,len(dataIndex)))#go to 0 because of the constant
+                h = self.sigmoid(sum(dataMatrix[randIndex]*weights))
+                error = classLabels[randIndex] - h
+                weights = weights + alpha * error * dataMatrix[randIndex]
+                del(dataIndex[randIndex])
+        return weights    
  
     
     ############################################################
@@ -92,6 +92,56 @@ class Tipster_Logistic_Actor(MyDbEx, BaseFunc):
        
         #对self.stocks中所列举的股票进行计算
         myGlobal.logger.info("newTicker for Logistic:%s" % (self.stock))
+        
+        #某些局部变量的初始化
+        forecastDataLen=1   #预测的数据长度，肯定为1
+        testDataLen=20      #用于构造完决策树，测试正确率的数据量
+        createTreeDataLen=90#用于构造决策树的数据量
+        calcPastDays=forecastDataLen+testDataLen+createTreeDataLen
+
+        #取出基本数据
+        getItemTitle=['Date', 'PriceIncreaseRate']+self.refTargetItem
+        bData=self.DbEx_GetDataByTitle(self.stock, getItemTitle, outDataFormat=np.float32)
+        if bData.shape[0]<(calcPastDays+10):
+            self.tipsterRightRate=0.0
+            self.tipsterIncrease=False
+            return
+        
+        #只取一定数量条数据计算
+        dateTime=bData[:calcPastDays+10, 0]
+        labels=bData[:calcPastDays+10, 1]
+        calcData=bData[:calcPastDays+10, 2:]
+        #在calcData前增加一列1.0
+        calcData = np.insert(calcData, 0, values=np.ones(calcData.shape[0], dtype=np.float32), axis=1)
+        assert calcData.dtype==np.float32
+        
+        #labels也要离散化，这里离散化为1（涨）和0（跌）
+        labels=np.where(labels > 0, 1, 0)
+        
+        #下面开始进行回归，求最佳W系数
+        #用index从（forecastDataLen+testDataLen）到calcPastDays的数据回归
+        weights = self.stocGradAscent1(calcData[forecastDataLen+testDataLen:calcPastDays], labels[forecastDataLen+testDataLen:calcPastDays])
+        
+        #显示计算得到的权重值
+        #print (weights)
+        
+        #用index从（forecastDataLen）到（forecastDataLen+testDataLen）的数据计算回归算法的预测准确率
+        rightCount=0
+        errorCount=0
+        uncertainCount=0
+        for i in range(forecastDataLen, forecastDataLen+testDataLen):
+            h = self.sigmoid(calcData[i]*weights)
+            temp_forecast=1 if h>0.5 else 0
+            if not(temp_forecast ^ labels[i]):
+                rightCount+=1
+            else:
+                errorCount+=1
+        self.tipsterRightRate=1.0*rightCount/testDataLen
+        
+        #用回归算法预测
+        #用calcData[0]预测
+        h = self.sigmoid(calcData[0]*weights)
+        self.tipsterIncrease =1 if h>0.5 else 0
 
         return
         
@@ -105,23 +155,11 @@ class observer_Tipster_Logistic(Observer):
         refTargetItem=['Volume', 'mean_3_RatePrice', 'mean_5_RatePrice', 'mean_10_RatePrice', 'mean_20_RatePrice', 'mean_30_RatePrice']
         
         
-        calcEngine_type='CPU'
-        if config.g_opencl_accelerate:
-            OC = OpenCL_Cap()
-            if len(OC.handles):
-                #calcEngine = opencl_algorithms_engine(device_index=0, kernelFile='opencl/myKernels.cl')
-                calcEngine_type='OpenCL'
-        
         #bank stock
         stockListTemp=[item[0] for item in config.stockList['Bank']]
         
         #创建actor列表
-        if calcEngine_type=='CPU':
-            self.actors+=[Tipster_Logistic_Actor(item, refTargetItem, cpu_algorithms_engine(), 'Bank') for item in stockListTemp]
-        elif calcEngine_type=='OpenCL':
-            self.actors+=[Tipster_Logistic_Actor(item, refTargetItem, opencl_algorithms_engine(device_index=0, kernelFile='opencl/myKernels.cl'), 'Bank') for item in stockListTemp]
-        else:
-            assert 0
+        self.actors+=[Tipster_Logistic_Actor(item, refTargetItem, cpu_algorithms_engine(), 'Bank') for item in stockListTemp]
         
         self.threadpool = ThreadPoolExecutor(max_workers=8)
         
