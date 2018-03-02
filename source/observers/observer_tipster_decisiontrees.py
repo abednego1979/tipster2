@@ -201,6 +201,8 @@ class Tipster_DecisionTrees_Actor(MyDbEx, BaseFunc):
         calcData=bData[:calcPastDays+10, 2:]
         assert calcData.dtype==np.float32
         
+        #这里没必要做数据归一化
+        
         #对数据进行分类
         tone=[]
         for i in range(calcPastDays):

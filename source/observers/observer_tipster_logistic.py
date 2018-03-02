@@ -9,6 +9,7 @@ import json
 import traceback
 import datetime
 import math
+import random
 import operator
 from .observer import Observer
 import myGlobal
@@ -40,6 +41,33 @@ class Tipster_Logistic_Actor(MyDbEx, BaseFunc):
         self.tipsterIncrease=False
         pass
     
+    def autoNorm(self, dataSet):
+        #'''利用cpu或gpu进行数据的归一化'''
+        minVals=[]
+        maxVals=[]
+        ranges=[]
+        #获取各个数据的最大最小值
+        for i in range(dataSet.shape[1]):
+            max_temp, min_temp = self.calcEngine.algorithm_vector_max_min(dataSet[:,i])
+            minVals.append(min_temp)
+            maxVals.append(max_temp)
+        
+        minVals=np.array(minVals)
+        maxVals=np.array(maxVals)
+        ranges=maxVals-minVals
+        m=dataSet.shape[0]
+        
+        #进行矩阵的复制,normDataSet=dataSet.copy()
+        normDataSet = self.calcEngine.algorithm_matrix_copy(dataSet)
+        
+        #矩阵减,normDataSet=normDataSet-np.tile(minVals,(m,1))
+        normDataSet = self.calcEngine.algorithm_matrix_vector_sub(normDataSet, minVals)
+        
+        #矩阵除,normDataSet=normDataSet/np.tile(ranges,(m,1))
+        normDataSet = self.calcEngine.algorithm_matrix_vector_div(normDataSet, ranges)
+        
+        return normDataSet,ranges,minVals    
+    
     
     ####回归Logistic的主要算法########################################################
     
@@ -52,7 +80,7 @@ class Tipster_Logistic_Actor(MyDbEx, BaseFunc):
         m,n = np.shape(dataMatrix)
         alpha = 0.001
         maxCycles = 500
-        weights = np.ones((n,1))
+        weights = cones((n,1))
         for k in range(maxCycles):              #heavy on matrix operations
             h = self.sigmoid(dataMatrix*weights)     #matrix mult
             error = (labelMat - h)              #vector subtraction
@@ -60,10 +88,10 @@ class Tipster_Logistic_Actor(MyDbEx, BaseFunc):
         return weights
     
     def stocGradAscent1(self, dataMatrix, classLabels, numIter=150):
-        m,n = shape(dataMatrix)
-        weights = ones(n)   #initialize to all ones
+        m,n = np.shape(dataMatrix)
+        weights = np.ones(n)   #initialize to all ones
         for j in range(numIter):
-            dataIndex = range(m)
+            dataIndex = list(range(m))
             for i in range(m):
                 alpha = 4/(1.0+j+i)+0.0001    #apha decreases with iteration, does not 
                 randIndex = int(random.uniform(0,len(dataIndex)))#go to 0 because of the constant
@@ -107,10 +135,14 @@ class Tipster_Logistic_Actor(MyDbEx, BaseFunc):
             self.tipsterIncrease=False
             return
         
+        
+        
         #只取一定数量条数据计算
         dateTime=bData[:calcPastDays+10, 0]
         labels=bData[:calcPastDays+10, 1]
         calcData=bData[:calcPastDays+10, 2:]
+        #进行数据归一化
+        calcData,ranges,minVals=self.autoNorm(calcData)        
         #在calcData前增加一列1.0
         calcData = np.insert(calcData, 0, values=np.ones(calcData.shape[0], dtype=np.float32), axis=1)
         assert calcData.dtype==np.float32
@@ -130,7 +162,7 @@ class Tipster_Logistic_Actor(MyDbEx, BaseFunc):
         errorCount=0
         uncertainCount=0
         for i in range(forecastDataLen, forecastDataLen+testDataLen):
-            h = self.sigmoid(calcData[i]*weights)
+            h = self.sigmoid(sum(calcData[i]*weights))
             temp_forecast=1 if h>0.5 else 0
             if not(temp_forecast ^ labels[i]):
                 rightCount+=1
