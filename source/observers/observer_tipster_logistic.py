@@ -172,7 +172,7 @@ class Tipster_Logistic_Actor(MyDbEx, BaseFunc):
         
         #用回归算法预测
         #用calcData[0]预测
-        h = self.sigmoid(calcData[0]*weights)
+        h = self.sigmoid(sum(calcData[0]*weights))
         self.tipsterIncrease =1 if h>0.5 else 0
 
         return

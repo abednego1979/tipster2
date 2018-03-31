@@ -226,7 +226,7 @@ class observer_PriceFluctuation_TwoStock_DailyClose(Observer):
         x=np.array(range(xLen))
         yList=[np.array(addData['rateFluctuation'])[-xLen:], np.array(addData['UpTh'])[-xLen:], np.array(addData['DnTh'])[-xLen:]]
         jpgFilename=objfilename.replace('.csv', '.jpg')
-        MyDrawing().drawCurve(x, yList, outfile=jpgFilename, title='_'.join(bestResult_stockList), xlabel='Date', ylabel='Values')
+        MyDrawing().drawCurve(x, yList, lineName=[], outfile=jpgFilename, title='_'.join(bestResult_stockList), xlabel='Date', ylabel='Values')
         myGlobal.attachMailFileList.append(jpgFilename)
         
         pass

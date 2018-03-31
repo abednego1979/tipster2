@@ -11,8 +11,16 @@ class MyDrawing():
     def __init__(self):
         return
     
-    def drawCurve(self, x, yList, outfile='', title='title', xlabel='x', ylabel='y'):
+    #x:X轴序列
+    #yList:Y上的N个序列
+    #outfile:非空代表要输出的图片文件名，若为空则代表要显示到屏幕
+    #title:整个图的标题
+    #xlabel:X轴名称
+    #ylabel:Y轴名称
+    def drawCurve(self, x, yList, lineName=[], outfile='', title='title', xlabel='x', ylabel='y'):
         colorList=['red', 'green', 'blue']
+        if len(lineName)==0:
+            lineName=["Line %d" % i for i in range(len(yList))]
         z = np.zeros(x.shape[0])
         plt.figure(figsize=(8,4))       #设置画布大小
         ymax=ymin=0.0
