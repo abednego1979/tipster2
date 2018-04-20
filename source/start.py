@@ -32,7 +32,6 @@ import logging
 import logging.handlers
 import sys
 from utils import log_exception
-import myGlobal
 from BaseFunc import BaseFunc
 from public_stocks.stock import Stock
 
@@ -72,6 +71,12 @@ def initGlobalValue():
     config.db_entry['table_construction']={'column': myGlobal.column_Type_BaseData_Title+myGlobal.column_Type_Forecast_Title+myGlobal.column_Type_ExtendData_Title, \
                                          'dataType':column_Type_BaseData_DataType+column_Type_Forecast_DataType+column_Type_ExtendData_DataType}
     config.db_entry['main_key']=myGlobal.column_Type_BaseData_Title[0]
+    
+    #从配置文件获取加密的信息    
+    myConfig = configparser.ConfigParser()
+    myConfig.read("encryptionInfo.conf")
+    config.config_proxy_info=myConfig.get('proxy_info', 'info')
+    config.email_info=myConfig.get('email_info', 'info')
 
 
 
@@ -225,7 +230,6 @@ class ArbitrerCLI:
     def __init__(self):
         pass
     def exec_command(self, args):
-        initGlobalValue()
         if args.reset:
             #复位系统，重新初始化数据库等
             a=input('####%%%%    Are you want to re-build the DataBase???(Type "yes" to continue)')
@@ -308,9 +312,6 @@ class ArbitrerCLI:
                 print ("The stock list is different between file and database, Please run commond with '--reset'.")
             else:
                 #代理设置初始化
-                
-                
-                
                 myGlobal.userChooseProxySet=config.config_proxy_en
                 if config.config_proxy_en=='on':
                     proxyChoose=input('The PROXY is on, Right?(Y/n)')
@@ -319,6 +320,7 @@ class ArbitrerCLI:
                 
                 if myGlobal.userChooseProxySet=='on':
                     #代理信息加密存储，这里先要解密
+                    #从配置文件中获取加密的代理设置信息                    
                     temp_config_proxy = json.loads(config.decryptInfo(config.config_proxy_info, config.cryptoKey))
                     
                     a=temp_config_proxy['user']
@@ -380,18 +382,20 @@ class ArbitrerCLI:
         self.exec_command(args)
         
 def timedInput( context ):
-    context[ 'data' ] = input( 'modify the encrypted info of config.py?(y/N):' )
+    context[ 'data' ] = input( 'modify the encrypted info of config.py(select in 10 Secs)?(y/N):' )
 
 def main():
     
     v=Version()
     print('Tipster(TensorFlow) '+v.getVersionString())
     
+    initGlobalValue()
+    
     #input('这里写还未实现的功能，以后一一实现')
     
     #如果有相关文件提供密钥，就从数据文件从获取，否则需要手工输入
     try:
-        with open('passKey.dat', 'r') as pf:
+        with open('../../passKey.dat', 'r') as pf:
             passKey=pf.read()
     except:
         passKey=input('input the crypt key for config file:')
@@ -415,26 +419,37 @@ def main():
         modify_flag=False
         for key in temp_config_proxy.keys():
             inp=input('<%s>:' % temp_config_proxy[key])
-            if not inp:
+            if inp:
                 temp_config_proxy[key]=inp
                 modify_flag=True
         if modify_flag:
-            #将新信息加密写回config.py文件
+            #将新信息加密写回conf文件
             config.config_proxy_info = config.encryptInfo(json.dumps(temp_config_proxy), config.cryptoKey)
             print ("New Proxy Info:%s" % config.config_proxy_info)
+            
+            myConfig = configparser.ConfigParser()
+            myConfig.read("encryptionInfo.conf")
+            myConfig.set('proxy_info', 'info', config.config_proxy_info)
+            myConfig.write(open('encryptionInfo.conf', 'w'))
+            
         
         #邮件信息
         temp_email_info = json.loads(config.decryptInfo(config.email_info, config.cryptoKey))        
         modify_flag=False
-        for key in temp_config_proxy.keys():
-            inp=input('<%s>:' % temp_config_proxy[key])
-            if not inp:
-                temp_config_proxy[key]=inp
+        for key in temp_email_info.keys():
+            inp=input('<%s>:' % temp_email_info[key])
+            if inp:
+                temp_email_info[key]=inp
                 modify_flag=True
         if modify_flag:
             #将新信息加密写回config.py文件
-            config.email_info = config.encryptInfo(json.dumps(temp_config_proxy), config.cryptoKey)
+            config.email_info = config.encryptInfo(json.dumps(temp_email_info), config.cryptoKey)
             print ("New Email Info:%s" % config.email_info)
+            
+            myConfig = configparser.ConfigParser()
+            myConfig.read("encryptionInfo.conf")
+            myConfig.set('email_info', 'info', config.email_info)
+            myConfig.write(open('encryptionInfo.conf', 'w'))
             
     #检查是否存在mysql数据库，如果不存在就创建一个
     #数据库的基本数据格式有时间戳（id），marcket（同一个交易所的不同币种认为是不同市场），datatype（深度，交易等），data（json格式）

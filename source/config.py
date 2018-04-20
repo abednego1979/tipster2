@@ -94,10 +94,14 @@ def decryptInfo(cipherText, key=b''):
 config_proxy_en='on'
 #How to create enctrypt message:
 #config.encryptInfo/config.decryptInfo
+#the encryption information is in conf file
+
 #{'user': 'xxxxxxxx', 'password': 'xxxxxxxx', 'ip_http': 'xxxxxxxx', 'ip_https': 'xxxxxxxx'}
-config_proxy_info = '+xIGTSdXLxw2mdsilaRypGf6hutl2ucuBdiIYKTedm9cDOSWyDsIP+gZKNDeGPliEwf9R6MQb4eAlXgum4AluNx+fLiGj6mZ6wY5inlOPxS2drnzsEniEAuSn96HgvBDCtRYXpI0opchEapilPNkWZdcGVQjHRL94MavmrmGS2U='
+config_proxy_info=''
 #{'mail_host': 'smtp.qq.com', 'mail_port': 465, 'mail_user': 'xxxxxxxx', 'mail_pass': '授权码,不是密码', 'sender': 'xxxxxxxx@qq.com', 'receivers': 'xxxxxxxx@163.com'}
-email_info='TE9fi1aWPoyB4hCjbl/ZfMgeMTv8zV/Hhsdr6+gn200nF+DFkSYIHybZi8vdAqIDO4KmlGXIndCVl9cGc+LCgrW/K+y98JKqlFxV+C9FPKpdRcuUU9/qs8/9vFha1Ok01vNBvhqFPy4Xel2CENEOoqMEDDnf57s+xqxIDW4OgxDePl9sDhwtB5LryO2vySLH1udoCZ1nASM6QyyU/MY/grN4sy+kwkIALdsIOWGBDi0='
+#{}['receivers']用,分割
+email_info=''
+
 
 #logger日志相关
 logger_console='on'
