@@ -402,6 +402,8 @@ def main():
     try:
         with open('../../passKey.dat', 'r') as pf:
             passKey=pf.read()
+            passKey=passKey[:16]
+            
     except:
         passKey=input('input the crypt key for config file:')
     
