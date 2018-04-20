@@ -404,6 +404,9 @@ def main():
             passKey=pf.read()
     except:
         passKey=input('input the crypt key for config file:')
+    
+    print ("input pass Key is:%s" % passKey)
+    print ("pass Key len is:%d" % len(passKey))
     assert len(passKey)==16 or len(passKey)==24 or len(passKey)==32
     if not isinstance(passKey, bytes):
         passKey = passKey.encode()
