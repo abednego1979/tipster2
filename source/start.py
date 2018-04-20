@@ -314,8 +314,13 @@ class ArbitrerCLI:
                 #代理设置初始化
                 myGlobal.userChooseProxySet=config.config_proxy_en
                 if config.config_proxy_en=='on':
-                    proxyChoose=input('The PROXY is on, Right?(Y/n)')
-                    if proxyChoose=='N' or proxyChoose=='n':
+                    #这里对是否要打开proxy进行确认
+                    context = { 'data' : 'default' }
+                    t = threading.Thread( target = timedInput ,args = ( "The PROXY is on, Right (5 secs timeout to N)?(Y/N)", context , ) )
+                    t.start( )
+                    t.join( 5 )
+                    
+                    if context['data'].lower()=='n' or context['data'].lower()=='default':
                         myGlobal.userChooseProxySet='off'
                 
                 if myGlobal.userChooseProxySet=='on':
@@ -381,8 +386,8 @@ class ArbitrerCLI:
         self.init_logger()
         self.exec_command(args)
         
-def timedInput( context ):
-    context[ 'data' ] = input( 'modify the encrypted info of config.py(select in 10 Secs)?(y/N):' )
+def timedInput( promptString, context ):
+    context[ 'data' ] = input( promptString )
 
 def main():
     
@@ -407,9 +412,9 @@ def main():
     
     #这里对config文件中的加密信息进行确认
     context = { 'data' : 'default' }
-    t = threading.Thread( target = timedInput ,args = ( context , ) )
+    t = threading.Thread( target = timedInput ,args = ( 'modify the encrypted info in config.py(5 secs timeout to N)?(Y/N):', context , ) )
     t.start( )
-    t.join( 10 )
+    t.join( 5 )
     
     if context['data'].lower()=='y':
         #需要修改配置文件中的加密信息
@@ -450,6 +455,8 @@ def main():
             myConfig.read("encryptionInfo.conf")
             myConfig.set('email_info', 'info', config.email_info)
             myConfig.write(open('encryptionInfo.conf', 'w'))
+    else:
+        print ("Use default encryption info.")
             
     #检查是否存在mysql数据库，如果不存在就创建一个
     #数据库的基本数据格式有时间戳（id），marcket（同一个交易所的不同币种认为是不同市场），datatype（深度，交易等），data（json格式）
