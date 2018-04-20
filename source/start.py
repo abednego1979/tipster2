@@ -15,6 +15,7 @@ import random
 import traceback
 import numpy as np
 import configparser
+import threading
 
 import myGlobal
 from CalcEngine_CPU import *
@@ -378,6 +379,8 @@ class ArbitrerCLI:
         self.init_logger()
         self.exec_command(args)
         
+def timedInput( context ):
+    context[ 'data' ] = input( 'modify the encrypted info of config.py?(y/N):' )
 
 def main():
     
@@ -386,13 +389,53 @@ def main():
     
     #input('这里写还未实现的功能，以后一一实现')
     
-    passKey=input('input the crypt key for config file:')
+    #如果有相关文件提供密钥，就从数据文件从获取，否则需要手工输入
+    try:
+        with open('passKey.dat', 'r') as pf:
+            passKey=pf.read()
+    except:
+        passKey=input('input the crypt key for config file:')
     assert len(passKey)==16 or len(passKey)==24 or len(passKey)==32
     if not isinstance(passKey, bytes):
         passKey = passKey.encode()
     config.cryptoKey = passKey
     
-
+    
+    #这里对config文件中的加密信息进行确认
+    context = { 'data' : 'default' }
+    t = threading.Thread( target = timedInput ,args = ( context , ) )
+    t.start( )
+    t.join( 10 )
+    
+    if context['data'].lower()=='y':
+        #需要修改配置文件中的加密信息
+        
+        #代理信息
+        temp_config_proxy = json.loads(config.decryptInfo(config.config_proxy_info, config.cryptoKey))
+        modify_flag=False
+        for key in temp_config_proxy.keys():
+            inp=input('<%s>:' % temp_config_proxy[key])
+            if not inp:
+                temp_config_proxy[key]=inp
+                modify_flag=True
+        if modify_flag:
+            #将新信息加密写回config.py文件
+            config.config_proxy_info = config.encryptInfo(json.dumps(temp_config_proxy), config.cryptoKey)
+            print ("New Proxy Info:%s" % config.config_proxy_info)
+        
+        #邮件信息
+        temp_email_info = json.loads(config.decryptInfo(config.email_info, config.cryptoKey))        
+        modify_flag=False
+        for key in temp_config_proxy.keys():
+            inp=input('<%s>:' % temp_config_proxy[key])
+            if not inp:
+                temp_config_proxy[key]=inp
+                modify_flag=True
+        if modify_flag:
+            #将新信息加密写回config.py文件
+            config.email_info = config.encryptInfo(json.dumps(temp_config_proxy), config.cryptoKey)
+            print ("New Email Info:%s" % config.email_info)
+            
     #检查是否存在mysql数据库，如果不存在就创建一个
     #数据库的基本数据格式有时间戳（id），marcket（同一个交易所的不同币种认为是不同市场），datatype（深度，交易等），data（json格式）
     #assert 0
