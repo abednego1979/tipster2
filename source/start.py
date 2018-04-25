@@ -208,12 +208,16 @@ class Arbitrer(object):
             
             #发送邮件
             if myGlobal.userChooseProxySet != 'on':
+                print ("Try to Send E-mail")
                 try:
                     with open('MailOutInfo.txt', 'r') as pf:
                         lines=pf.read()
                         #print (">>>>>>>>>"+lines)
                         MySendMail().sendRes_ByMail(lines, myGlobal.attachMailFileList)
-                except:
+                except Exception as err:
+                    print ("There is some error when send E-mail")
+                    print (err)
+                    print(traceback.format_exc())
                     pass
             
             try:
