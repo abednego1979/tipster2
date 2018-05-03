@@ -91,7 +91,7 @@ def decryptInfo(cipherText, key=b''):
 
 
 #proxy相关
-config_proxy_en='on'
+config_proxy_en=''
 #How to create enctrypt message:
 #config.encryptInfo/config.decryptInfo
 #the encryption information is in conf file

@@ -72,13 +72,21 @@ def initGlobalValue():
                                          'dataType':column_Type_BaseData_DataType+column_Type_Forecast_DataType+column_Type_ExtendData_DataType}
     config.db_entry['main_key']=myGlobal.column_Type_BaseData_Title[0]
     
-    #从配置文件获取加密的信息    
+    #从配置文件获取环境信息    
     myConfig = configparser.ConfigParser()
-    myConfig.read("encryptionInfo.conf")
+    myConfig.read("env_config.conf")
+    config.config_proxy_en=myConfig.get('proxy_info', 'switch')
     config.config_proxy_info=myConfig.get('proxy_info', 'info')
     config.email_info=myConfig.get('email_info', 'info')
+    
 
+#在程序运行之前做一些检查
+def preCheck():
+    #检查临时数据存放路径是否存在，如果没有就创建
+    if not os.path.isdir(config.tempOutDataDir):
+        os.mkdir(config.tempOutDataDir)
 
+    return
 
 class Arbitrer(object):
     def __init__(self):
@@ -207,7 +215,7 @@ class Arbitrer(object):
                 pass
             
             #发送邮件
-            if myGlobal.userChooseProxySet != 'on':
+            if config.config_proxy_en != 'on':
                 print ("Try to Send E-mail")
                 try:
                     with open('MailOutInfo.txt', 'r') as pf:
@@ -306,6 +314,55 @@ class ArbitrerCLI:
             
             print('####&&&&to be finished####&&&&')
             
+        elif args.config:
+            #修改是否使用代理的信息
+            inp=input('<proxy switch:%s>:' % config.config_proxy_en)
+            if inp:
+                config.config_proxy_en = inp
+                #将新信息加密写回conf文件
+                print ("New Proxy switch:%s" % config.config_proxy_en)
+                myConfig = configparser.ConfigParser()
+                myConfig.read("env_config.conf")
+                myConfig.set('proxy_info', 'switch', config.config_proxy_en)
+                myConfig.write(open('env_config.conf', 'w'))
+            
+            
+            #修改代理信息
+            temp_config_proxy = json.loads(config.decryptInfo(config.config_proxy_info, config.cryptoKey))
+            modify_flag=False
+            for key in temp_config_proxy.keys():
+                inp=input('<%s:%s>:' % (key, temp_config_proxy[key]))
+                if inp:
+                    temp_config_proxy[key]=inp
+                    modify_flag=True
+            if modify_flag:
+                #将新信息加密写回conf文件
+                config.config_proxy_info = config.encryptInfo(json.dumps(temp_config_proxy), config.cryptoKey)
+                print ("New Proxy Info:%s" % config.config_proxy_info)
+        
+                myConfig = configparser.ConfigParser()
+                myConfig.read("env_config.conf")
+                myConfig.set('proxy_info', 'info', config.config_proxy_info)
+                myConfig.write(open('env_config.conf', 'w'))
+                
+            #修改邮件信息
+            temp_email_info = json.loads(config.decryptInfo(config.email_info, config.cryptoKey))        
+            modify_flag=False
+            for key in temp_email_info.keys():
+                inp=input('<%s:%s>:' % (key, temp_email_info[key]))
+                if inp:
+                    temp_email_info[key]=inp
+                    modify_flag=True
+            if modify_flag:
+                #将新信息加密写回config.py文件
+                config.email_info = config.encryptInfo(json.dumps(temp_email_info), config.cryptoKey)
+                print ("New Email Info:%s" % config.email_info)
+        
+                myConfig = configparser.ConfigParser()
+                myConfig.read("env_config.conf")
+                myConfig.set('email_info', 'info', config.email_info)
+                myConfig.write(open('env_config.conf', 'w'))
+            
         else:
             db_handle=Stock()
             stock_list_1 = db_handle.getStockNoList_File(os.path.join('dir_baseData', 'stockList.csv'))
@@ -316,18 +373,7 @@ class ArbitrerCLI:
                 print ("The stock list is different between file and database, Please run commond with '--reset'.")
             else:
                 #代理设置初始化
-                myGlobal.userChooseProxySet=config.config_proxy_en
                 if config.config_proxy_en=='on':
-                    #这里对是否要打开proxy进行确认
-                    context = { 'data' : 'default' }
-                    t = threading.Thread( target = timedInput ,args = ( "The PROXY is on, Right (5 secs timeout to N)?(Y/N)", context , ) )
-                    t.start( )
-                    t.join( 5 )
-                    
-                    if context['data'].lower()=='n' or context['data'].lower()=='default':
-                        myGlobal.userChooseProxySet='off'
-                
-                if myGlobal.userChooseProxySet=='on':
                     #代理信息加密存储，这里先要解密
                     #从配置文件中获取加密的代理设置信息                    
                     temp_config_proxy = json.loads(config.decryptInfo(config.config_proxy_info, config.cryptoKey))
@@ -385,6 +431,7 @@ class ArbitrerCLI:
     def main(self):
         parser = argparse.ArgumentParser()
         parser.add_argument("-r", "--reset", help="Reset the system, clear all the history data", action="store_true")
+        parser.add_argument("-c", "--config", help="Config some variable quantity", action="store_true")
         #parser.add_argument("command", nargs='*', default="watch", help='verb: "watch|replay-history|get-balance|list-public-markets"')
         args = parser.parse_args()
         self.init_logger()
@@ -399,6 +446,8 @@ def main():
     print('Tipster(TensorFlow) '+v.getVersionString())
     
     initGlobalValue()
+    
+    preCheck()
     
     #input('这里写还未实现的功能，以后一一实现')
     
@@ -417,55 +466,6 @@ def main():
     if not isinstance(passKey, bytes):
         passKey = passKey.encode()
     config.cryptoKey = passKey
-    
-    
-    #这里对config文件中的加密信息进行确认
-    context = { 'data' : 'default' }
-    t = threading.Thread( target = timedInput ,args = ( 'modify the encrypted info in config.py(5 secs timeout to N)?(Y/N):', context , ) )
-    t.start( )
-    t.join( 5 )
-    
-    if context['data'].lower()=='y':
-        #需要修改配置文件中的加密信息
-        
-        #代理信息
-        temp_config_proxy = json.loads(config.decryptInfo(config.config_proxy_info, config.cryptoKey))
-        modify_flag=False
-        for key in temp_config_proxy.keys():
-            inp=input('<%s>:' % temp_config_proxy[key])
-            if inp:
-                temp_config_proxy[key]=inp
-                modify_flag=True
-        if modify_flag:
-            #将新信息加密写回conf文件
-            config.config_proxy_info = config.encryptInfo(json.dumps(temp_config_proxy), config.cryptoKey)
-            print ("New Proxy Info:%s" % config.config_proxy_info)
-            
-            myConfig = configparser.ConfigParser()
-            myConfig.read("encryptionInfo.conf")
-            myConfig.set('proxy_info', 'info', config.config_proxy_info)
-            myConfig.write(open('encryptionInfo.conf', 'w'))
-            
-        
-        #邮件信息
-        temp_email_info = json.loads(config.decryptInfo(config.email_info, config.cryptoKey))        
-        modify_flag=False
-        for key in temp_email_info.keys():
-            inp=input('<%s>:' % temp_email_info[key])
-            if inp:
-                temp_email_info[key]=inp
-                modify_flag=True
-        if modify_flag:
-            #将新信息加密写回config.py文件
-            config.email_info = config.encryptInfo(json.dumps(temp_email_info), config.cryptoKey)
-            print ("New Email Info:%s" % config.email_info)
-            
-            myConfig = configparser.ConfigParser()
-            myConfig.read("encryptionInfo.conf")
-            myConfig.set('email_info', 'info', config.email_info)
-            myConfig.write(open('encryptionInfo.conf', 'w'))
-    else:
-        print ("Use default encryption info.")
             
     #检查是否存在mysql数据库，如果不存在就创建一个
     #数据库的基本数据格式有时间戳（id），marcket（同一个交易所的不同币种认为是不同市场），datatype（深度，交易等），data（json格式）

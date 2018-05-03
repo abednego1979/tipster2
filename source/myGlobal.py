@@ -7,7 +7,6 @@ import logging
 import config
 
 logger=None
-userChooseProxySet=None
 
 
 #class signals():
