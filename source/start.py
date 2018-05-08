@@ -74,8 +74,7 @@ def initGlobalValue():
     
     #从配置文件获取环境信息    
     myConfig = configparser.ConfigParser()
-    myConfig.read("env_config.conf")
-    config.config_proxy_en=myConfig.get('proxy_info', 'switch')
+    myConfig.read("encrypt_config.conf")
     config.config_proxy_info=myConfig.get('proxy_info', 'info')
     config.email_info=myConfig.get('email_info', 'info')
     
@@ -315,18 +314,6 @@ class ArbitrerCLI:
             print('####&&&&to be finished####&&&&')
             
         elif args.config:
-            #修改是否使用代理的信息
-            inp=input('<proxy switch:%s>:' % config.config_proxy_en)
-            if inp:
-                config.config_proxy_en = inp
-                #将新信息加密写回conf文件
-                print ("New Proxy switch:%s" % config.config_proxy_en)
-                myConfig = configparser.ConfigParser()
-                myConfig.read("env_config.conf")
-                myConfig.set('proxy_info', 'switch', config.config_proxy_en)
-                myConfig.write(open('env_config.conf', 'w'))
-            
-            
             #修改代理信息
             temp_config_proxy = json.loads(config.decryptInfo(config.config_proxy_info, config.cryptoKey))
             modify_flag=False
@@ -341,9 +328,9 @@ class ArbitrerCLI:
                 print ("New Proxy Info:%s" % config.config_proxy_info)
         
                 myConfig = configparser.ConfigParser()
-                myConfig.read("env_config.conf")
+                myConfig.read("encrypt_config.conf")
                 myConfig.set('proxy_info', 'info', config.config_proxy_info)
-                myConfig.write(open('env_config.conf', 'w'))
+                myConfig.write(open('encrypt_config.conf', 'w'))
                 
             #修改邮件信息
             temp_email_info = json.loads(config.decryptInfo(config.email_info, config.cryptoKey))        
@@ -359,11 +346,11 @@ class ArbitrerCLI:
                 print ("New Email Info:%s" % config.email_info)
         
                 myConfig = configparser.ConfigParser()
-                myConfig.read("env_config.conf")
+                myConfig.read("encrypt_config.conf")
                 myConfig.set('email_info', 'info', config.email_info)
-                myConfig.write(open('env_config.conf', 'w'))
+                myConfig.write(open('encrypt_config.conf', 'w'))
             
-        else:
+        elif args.run:
             db_handle=Stock()
             stock_list_1 = db_handle.getStockNoList_File(os.path.join('dir_baseData', 'stockList.csv'))
             stock_list_2 = db_handle.getStockNoList_Db()
@@ -387,6 +374,8 @@ class ArbitrerCLI:
 
                 self.create_arbitrer()
                 self.arbitrer.loop()
+        else:
+            assert 0
 
     def create_arbitrer(self):
         self.arbitrer = Arbitrer()
@@ -432,10 +421,14 @@ class ArbitrerCLI:
         parser = argparse.ArgumentParser()
         parser.add_argument("-r", "--reset", help="Reset the system, clear all the history data", action="store_true")
         parser.add_argument("-c", "--config", help="Config some variable quantity", action="store_true")
+        parser.add_argument("-x", "--run", help="Run the main function of script", action="store_true")
         #parser.add_argument("command", nargs='*', default="watch", help='verb: "watch|replay-history|get-balance|list-public-markets"')
         args = parser.parse_args()
         self.init_logger()
-        self.exec_command(args)
+        if True in list(args.__dict__.values()):
+            self.exec_command(args)
+        else:#没有使用任何参数
+            parser.print_help()
         
 def timedInput( promptString, context ):
     context[ 'data' ] = input( promptString )
@@ -451,21 +444,27 @@ def main():
     
     #input('这里写还未实现的功能，以后一一实现')
     
-    #如果有相关文件提供密钥，就从数据文件从获取，否则需要手工输入
-    try:
-        with open('../../passKey.dat', 'r') as pf:
-            passKey=pf.read()
-            passKey=passKey[:16]
-            
-    except:
-        passKey=input('input the crypt key for config file:')
     
-    print ("input pass Key is:%s" % passKey)
-    print ("pass Key len is:%d" % len(passKey))
-    assert len(passKey)==16 or len(passKey)==24 or len(passKey)==32
-    if not isinstance(passKey, bytes):
-        passKey = passKey.encode()
-    config.cryptoKey = passKey
+    #有些配置根据运行的环境有不同，这些配置需要在运行脚本所在目录之外（以免github同步）的配置文件中配置。这里读取和设置这些变量
+    if os.path.isfile("../../env_config.conf"):
+        myConfig = configparser.ConfigParser()
+        myConfig.read("../../env_config.conf")
+        config.cryptoKey=myConfig.get('encrypt', 'passkey')
+        config.config_proxy_en=myConfig.get('proxy', 'switch')
+        assert len(config.cryptoKey)==16 or len(config.cryptoKey)==24 or len(config.cryptoKey)==32
+        assert config.config_proxy_en=='on' or config.config_proxy_en=='off'
+    else:
+        passKey=input('input the crypt key for config file:')
+        print ("input pass Key is:%s" % passKey)
+        print ("pass Key len is:%d" % len(passKey))        
+        assert len(passKey)==16 or len(passKey)==24 or len(passKey)==32
+        if not isinstance(passKey, bytes):
+            passKey = passKey.encode()
+        config.cryptoKey = passKey
+        
+        proxy_en=input('input the proxy_en(on/off):')
+        assert proxy_en=='on' or proxy_en=='off'
+        config.config_proxy_en=proxy_en
             
     #检查是否存在mysql数据库，如果不存在就创建一个
     #数据库的基本数据格式有时间戳（id），marcket（同一个交易所的不同币种认为是不同市场），datatype（深度，交易等），data（json格式）
