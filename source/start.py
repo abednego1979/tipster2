@@ -449,10 +449,14 @@ def main():
     if os.path.isfile("../../env_config.conf"):
         myConfig = configparser.ConfigParser()
         myConfig.read("../../env_config.conf")
-        config.cryptoKey=myConfig.get('encrypt', 'passkey')
-        config.config_proxy_en=myConfig.get('proxy', 'switch')
-        assert len(config.cryptoKey)==16 or len(config.cryptoKey)==24 or len(config.cryptoKey)==32
+        passKey=myConfig.get('encrypt', 'passkey')
+        assert len(passKey)==16 or len(passKey)==24 or len(passKey)==32
         assert config.config_proxy_en=='on' or config.config_proxy_en=='off'
+        if not isinstance(passKey, bytes):
+            passKey = passKey.encode()
+        config.cryptoKey = passKey
+        
+        config.config_proxy_en=myConfig.get('proxy', 'switch')
     else:
         passKey=input('input the crypt key for config file:')
         print ("input pass Key is:%s" % passKey)
