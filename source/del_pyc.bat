@@ -7,3 +7,4 @@ del MailOutInfo.txt
 del procLog_
 del procLog_*.log
 del /S /Q dir_temp_data\*.*
+del /S /Q dir_download\*.*
