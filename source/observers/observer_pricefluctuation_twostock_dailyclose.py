@@ -103,7 +103,7 @@ class PriceFluctuation_TwoStock_DailyClose_Actor(MyDbEx, BaseFunc):
         saveData=pd.merge(Close, CloseRate.rename(index=str, columns={otherStock: "CloseRate"}), on='Date')
         saveData=pd.merge(saveData, rateMeans.rename(index=str, columns={otherStock: "rateMeans"}), on='Date')
         saveData=pd.merge(saveData, rateFluctuation.rename(index=str, columns={otherStock: "rateFluctuation"}), on='Date')
-        saveData.to_csv(os.path.join(config.tempOutDataDir, 'bank_pricerate_fluctuation_'+'_'.join(self.stocks)+'_'+str(self.meanLen)+'.csv'))
+        saveData.to_csv(os.path.join(config.tempOutDataDir, self.StockClass+'_pricerate_fluctuation_'+'_'.join(self.stocks)+'_'+str(self.meanLen)+'.csv'))
         
         saveData=saveData.sort_values(by=['Date'])[['Date', refStock, otherStock, "rateFluctuation"]]
         #取最后90天
@@ -169,15 +169,16 @@ class observer_PriceFluctuation_TwoStock_DailyClose(Observer):
         #thresholdArray=[0.005,0.007,0.009]
         thresholdArray=[0.005]
         
-        #bank stock
-        stockListTemp=[item[0] for item in config.stockList['Bank']]
-
-        #用n个stock的组合，进行模拟计算
-        refStock=[stockListTemp[0]]
-        otherStocks=stockListTemp[1:]
-        for selectStocks in BaseFunc().selectElementFromList(otherStocks, 1):#任选1个股票与参考股票组合
-            paraArray=[(refStock+selectStocks, meanLen, threshold) for meanLen in meanLenArray for threshold in thresholdArray]
-            self.actors+=[PriceFluctuation_TwoStock_DailyClose_Actor(item[0], item[1], item[2], 'Bank') for item in paraArray]
+        for sockType in config.stockList.keys():
+            #some type of sock
+            stockListTemp=[item[0] for item in config.stockList[sockType]]
+    
+            #用n个stock的组合，进行模拟计算
+            refStock=[stockListTemp[0]]
+            otherStocks=stockListTemp[1:]
+            for selectStocks in BaseFunc().selectElementFromList(otherStocks, 1):#任选1个股票与参考股票组合
+                paraArray=[(refStock+selectStocks, meanLen, threshold) for meanLen in meanLenArray for threshold in thresholdArray]
+                self.actors+=[PriceFluctuation_TwoStock_DailyClose_Actor(item[0], item[1], item[2], sockType) for item in paraArray]
 
         self.threadpool = ThreadPoolExecutor(max_workers=8)
         
@@ -188,7 +189,7 @@ class observer_PriceFluctuation_TwoStock_DailyClose(Observer):
         for actor in self.actors:
             try:
                 actor.selfLogger ('info', "<end><meanlen:%d><Property:%f>" % (actor.meanLen, actor.curProperty))
-                result.append([json.dumps(actor.stocks), actor.meanLen, actor.curProperty, actor.curStockNo, actor.threshold])
+                result.append([json.dumps(actor.stocks), actor.meanLen, actor.curProperty, actor.curStockNo, actor.threshold, actor.StockClass])
             except Exception as err:
                 print (err)
                 print(traceback.format_exc())
@@ -208,8 +209,9 @@ class observer_PriceFluctuation_TwoStock_DailyClose(Observer):
         bestResult_stockList=json.loads(result[0][0])
         bestResult_meanLen=result[0][1]
         bestResult_Threshold=result[0][4]
+        bestResult_StockClass=result[0][5]
         
-        objfilename=os.path.join(config.tempOutDataDir, 'bank_pricerate_fluctuation_'+'_'.join(bestResult_stockList)+'_'+str(bestResult_meanLen)+'.csv')
+        objfilename=os.path.join(config.tempOutDataDir, bestResult_StockClass+'_pricerate_fluctuation_'+'_'.join(bestResult_stockList)+'_'+str(bestResult_meanLen)+'.csv')
         myGlobal.attachMailFileList.append(objfilename)
         
         #对最优的结果进行扩充数据

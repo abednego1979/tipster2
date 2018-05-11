@@ -180,16 +180,17 @@ class observer_Tipster_Knn(Observer):
                 #calcEngine = opencl_algorithms_engine(device_index=0, kernelFile='opencl/myKernels.cl')
                 calcEngine_type='OpenCL'
         
-        #bank stock
-        stockListTemp=[item[0] for item in config.stockList['Bank']]
+        for sockType in config.stockList.keys():
+            #some type of sock
+            stockListTemp=[item[0] for item in config.stockList[sockType]]
         
-        #创建actor列表
-        if calcEngine_type=='CPU':
-            self.actors+=[Tipster_Knn_Actor(item, refTargetItem, 5, cpu_algorithms_engine(), 'Bank') for item in stockListTemp]
-        elif calcEngine_type=='OpenCL':
-            self.actors+=[Tipster_Knn_Actor(item, refTargetItem, 5, opencl_algorithms_engine(device_index=0, kernelFile='opencl/myKernels.cl'), 'Bank') for item in stockListTemp]
-        else:
-            assert 0
+            #创建actor列表
+            if calcEngine_type=='CPU':
+                self.actors+=[Tipster_Knn_Actor(item, refTargetItem, 5, cpu_algorithms_engine(), sockType) for item in stockListTemp]
+            elif calcEngine_type=='OpenCL':
+                self.actors+=[Tipster_Knn_Actor(item, refTargetItem, 5, opencl_algorithms_engine(device_index=0, kernelFile='opencl/myKernels.cl'), sockType) for item in stockListTemp]
+            else:
+                assert 0
         
         self.threadpool = ThreadPoolExecutor(max_workers=8)
         

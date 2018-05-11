@@ -187,11 +187,12 @@ class observer_Tipster_Logistic(Observer):
         refTargetItem=['Volume', 'mean_3_RatePrice', 'mean_5_RatePrice', 'mean_10_RatePrice', 'mean_20_RatePrice', 'mean_30_RatePrice']
         
         
-        #bank stock
-        stockListTemp=[item[0] for item in config.stockList['Bank']]
+        for sockType in config.stockList.keys():
+            #some type of sock
+            stockListTemp=[item[0] for item in config.stockList[sockType]]
         
-        #创建actor列表
-        self.actors+=[Tipster_Logistic_Actor(item, refTargetItem, cpu_algorithms_engine(), 'Bank') for item in stockListTemp]
+            #创建actor列表
+            self.actors+=[Tipster_Logistic_Actor(item, refTargetItem, cpu_algorithms_engine(), sockType) for item in stockListTemp]
         
         self.threadpool = ThreadPoolExecutor(max_workers=8)
         
