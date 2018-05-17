@@ -18,15 +18,17 @@ class MyDrawing():
     #xlabel:X轴名称
     #ylabel:Y轴名称
     def drawCurve(self, x, yList, lineName=[], outfile='', title='title', xlabel='x', ylabel='y'):
-        colorList=['red', 'green', 'blue']
+        assert (len(yList)==len(lineName)) or (len(lineName)==0)
+        colorList=['red', 'green', 'blue', 'yellow', 'black', 'cyan', 'magenta']
+        assert len(yList)<=len(colorList)   #保证颜色够用
         if len(lineName)==0:
             lineName=["Line %d" % i for i in range(len(yList))]
         z = np.zeros(x.shape[0])
         plt.figure(figsize=(8,4))       #设置画布大小
         ymax=ymin=0.0
         try:
-            for i in range(len(colorList)):
-                plt.plot(x,yList[i],color=colorList[i],label='Line %d' % i, linewidth=2)
+            for i in range(len(yList)):
+                plt.plot(x,yList[i],color=colorList[i],label=lineName[i], linewidth=2)
                 if i==0:
                     ymax=yList[i].max()
                     ymin=yList[i].min()
