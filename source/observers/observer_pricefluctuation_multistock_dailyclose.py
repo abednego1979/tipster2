@@ -116,12 +116,12 @@ class observer_PriceFluctuation_MultiStock_DailyClose(Observer):
         self.meanLenArray=[5,8,10,12,20] #days
         #thresholdArray=[0.005,0.010,0.015,0.020]
         
-        for sockType in config.stockList.keys():
-            #some type of sock
-            stockListTemp=[item[0] for item in config.stockList[sockType]]
+        for stockType in config.stockList.keys():
+            #some type of stock
+            stockListTemp=[item[0] for item in config.stockList[stockType]]
 
             paraArray=[(stockListTemp, meanLen) for meanLen in self.meanLenArray]
-            self.actors+=[PriceFluctuation_MultiStock_DailyClose_Actor(item[0], item[1], sockType) for item in paraArray]
+            self.actors+=[PriceFluctuation_MultiStock_DailyClose_Actor(item[0], item[1], stockType) for item in paraArray]
         
         self.threadpool = ThreadPoolExecutor(max_workers=8)
         

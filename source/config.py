@@ -138,11 +138,27 @@ else:#for mac os
 
 stockList={\
     'Bank':[["601398.ss", "工商银行"],["601939.ss", "建设银行"],["601288.ss", "农业银行"],["601988.ss", "中国银行"],["600036.ss", "招商银行"],["600016.ss", "民生银行"],["600000.ss", "浦发银行"],["601328.ss", "交通银行"],["601818.ss", "光大银行"],["601169.ss", "北京银行"],["601998.ss", "中信银行"],["601166.ss", "兴业银行"],["600015.ss", "华夏银行"],["601229.ss", "上海银行"]],\
-    'Petroleum':[["601857.ss", "中国石油"],["600028.ss", "中国石化"],["603798.ss", "康普顿"],["601808.ss", "中海油服"]]\
+    'Petroleum':[["601857.ss", "中国石油"],["600028.ss", "中国石化"],["601808.ss", "中海油服"]]\
            }
 
-def getNamebyStock(No):
-    pass
+def getNamebyStock_configfile(No):
+    temp_stockList=[]
+    temp_stockName=[]
+    for kType in stockList.keys():
+        temp_stockList+=[item[0] for item in stockList[kType]]
+        temp_stockName+=[item[1] for item in stockList[kType]]
+
+    try:
+        return temp_stockName[temp_stockList.index(No)]
+    except:
+        return "Unknow_Stock_Name.ss"
+
+def getStockNoList_configfile():
+    res=[]
+    for kType in stockList.keys():
+        res+=[item[0] for item in stockList[kType]]
+        
+    return res
 
 
 

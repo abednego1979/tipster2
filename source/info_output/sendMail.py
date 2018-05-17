@@ -46,7 +46,7 @@ class MySendMail():
             #增加文件附件
             for attachFile in attachFiles:
                 filepart=MIMEApplication(open(attachFile, 'rb').read())
-                filepart.add_header('Content-Disposition', 'attachment', filename=attachFile)
+                filepart.add_header('Content-Disposition', 'attachment', filename=os.path.basename(attachFile))
                 message.attach(filepart)
         
         

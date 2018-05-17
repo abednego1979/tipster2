@@ -283,15 +283,15 @@ class observer_Tipster_DecisionTrees(Observer):
                 #calcEngine = opencl_algorithms_engine(device_index=0, kernelFile='opencl/myKernels.cl')
                 calcEngine_type='OpenCL'
         
-        for sockType in config.stockList.keys():
-            #some type of sock
-            stockListTemp=[item[0] for item in config.stockList[sockType]]
+        for stockType in config.stockList.keys():
+            #some type of stock
+            stockListTemp=[item[0] for item in config.stockList[stockType]]
         
             #创建actor列表
             if calcEngine_type=='CPU':
-                self.actors+=[Tipster_DecisionTrees_Actor(item, refTargetItem, cpu_algorithms_engine(), sockType) for item in stockListTemp]
+                self.actors+=[Tipster_DecisionTrees_Actor(item, refTargetItem, cpu_algorithms_engine(), stockType) for item in stockListTemp]
             elif calcEngine_type=='OpenCL':
-                self.actors+=[Tipster_DecisionTrees_Actor(item, refTargetItem, opencl_algorithms_engine(device_index=0, kernelFile='opencl/myKernels.cl'), sockType) for item in stockListTemp]
+                self.actors+=[Tipster_DecisionTrees_Actor(item, refTargetItem, opencl_algorithms_engine(device_index=0, kernelFile='opencl/myKernels.cl'), stockType) for item in stockListTemp]
             else:
                 assert 0
         

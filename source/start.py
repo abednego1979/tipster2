@@ -259,6 +259,14 @@ class ArbitrerCLI:
             stock_list = init_handle.getStockNoList_File(os.path.join('dir_baseData', 'stockList.csv'))         
             print('find '+str(len(stock_list))+' stocks.')
             
+            print('get stock no list (need to be download) from config file...')
+            conf_stock_list=config.getStockNoList_configfile()
+            
+            #conf_stock_list是运算要用到的股票列表，stock_list是要下载的股票列表，这里要保证stock_list包含conf_stock_list
+            temp_list=[item for item in conf_stock_list if item not in stock_list]
+            print (temp_list)
+            assert not temp_list,"Error: Some stock used will not be downloaded!!!"
+            
             print('create table for each stock...')
             init_handle.DbEx_Connect()
             for stockNo in stock_list:

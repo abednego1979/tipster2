@@ -169,16 +169,16 @@ class observer_PriceFluctuation_TwoStock_DailyClose(Observer):
         #thresholdArray=[0.005,0.007,0.009]
         thresholdArray=[0.005]
         
-        for sockType in config.stockList.keys():
-            #some type of sock
-            stockListTemp=[item[0] for item in config.stockList[sockType]]
+        for stockType in config.stockList.keys():
+            #some type of stock
+            stockListTemp=[item[0] for item in config.stockList[stockType]]
     
             #用n个stock的组合，进行模拟计算
             refStock=[stockListTemp[0]]
             otherStocks=stockListTemp[1:]
             for selectStocks in BaseFunc().selectElementFromList(otherStocks, 1):#任选1个股票与参考股票组合
                 paraArray=[(refStock+selectStocks, meanLen, threshold) for meanLen in meanLenArray for threshold in thresholdArray]
-                self.actors+=[PriceFluctuation_TwoStock_DailyClose_Actor(item[0], item[1], item[2], sockType) for item in paraArray]
+                self.actors+=[PriceFluctuation_TwoStock_DailyClose_Actor(item[0], item[1], item[2], stockType) for item in paraArray]
 
         self.threadpool = ThreadPoolExecutor(max_workers=8)
         
