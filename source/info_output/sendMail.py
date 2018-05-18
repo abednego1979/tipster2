@@ -3,7 +3,7 @@
 #Python 3.5.x
 
 #V0.01
-
+import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
