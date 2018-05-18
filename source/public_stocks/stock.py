@@ -17,6 +17,7 @@ import pandas as pd
 from BaseFunc import BaseFunc
 from CalcEngine_CPU import *
 from database.DB_Ex import MyDbEx
+import dir_baseData.stockList
 
 #Stock基类
 class Stock(MyDbEx, BaseFunc):
@@ -266,11 +267,7 @@ class Stock(MyDbEx, BaseFunc):
     
     #从我们主动整理的股票文件列表中获取股票编号列表，600006.ss
     def getStockNoList_File(self, stockListFile):
-        df=pd.read_csv(stockListFile, encoding='gbk', header=None)
-        lol=df.values.tolist()
-        sub_stock_list = ['0'*(6-len(str(item[0])))+str(item[0])+'.'+item[5] for item in lol]
-        
-        return sub_stock_list
+        return [item[1]+'.'+item[0] for item in dir_baseData.stockList.stockBaseList]
     
     def getStockNoList_Db(self):
         res=self.DbEx_GetDataByTitle('summary_tb', ['itemName', 'itemValue'], needSort=0)
