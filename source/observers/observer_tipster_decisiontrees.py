@@ -273,7 +273,7 @@ class observer_Tipster_DecisionTrees(Observer):
         #init actor(self.actors)
         self.actors=[]
         #参考的数据
-        refTargetItem=['Volume', 'mean_3_RatePrice', 'mean_5_RatePrice', 'mean_10_RatePrice', 'mean_20_RatePrice', 'mean_30_RatePrice']
+        refTargetItem=config.refStockTargetItem.copy()
         
         
         calcEngine_type='CPU'

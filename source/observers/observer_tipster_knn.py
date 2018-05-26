@@ -170,7 +170,7 @@ class observer_Tipster_Knn(Observer):
         #init actor(self.actors)
         self.actors=[]
         #参考的数据，如Volume#3代表要参考Volume，而距离是使用3天曲线之间的距离。
-        refTargetItem=['Volume', 'Volume', 'mean_3_RatePrice', 'mean_5_RatePrice', 'mean_10_RatePrice', 'mean_20_RatePrice', 'mean_30_RatePrice']
+        refTargetItem=config.refStockTargetItem.copy()
         
         
         calcEngine_type='CPU'

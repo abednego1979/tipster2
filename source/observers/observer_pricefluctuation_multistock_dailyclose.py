@@ -162,7 +162,7 @@ class observer_PriceFluctuation_MultiStock_DailyClose(Observer):
                 objfilename=objfilename=os.path.join(config.tempOutDataDir, actor.StockClass+'_pricerate_fluctuation_multistock_'+str(actor.meanLen)+'.csv')
                 df = pd.read_csv(objfilename, encoding='gbk')
                 #获取bestThreeStock[0][0]，bestThreeStock[1][0]，bestThreeStock[2][0]三个stock的rateFluctuation_60xxxx.ss曲线
-                drawLineNum=3
+                drawLineNum=min(len(bestThreeStock),3)
                 drawData=df[['rateFluctuation_'+bestThreeStock[i][0] for i in range(drawLineNum)]].copy(deep=True)
                 
                 xLen=30

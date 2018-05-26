@@ -141,6 +141,26 @@ stockList={\
     'Petroleum':[["601857.ss", "中国石油"],["600028.ss", "中国石化"],["601808.ss", "中海油服"]]\
            }
 
+#各种预测方法说参考的指标
+refStockTargetItem=[\
+    'Volume', \
+    'mean_3_RatePrice', \
+    'mean_5_RatePrice', \
+    'mean_10_RatePrice', \
+    'mean_20_RatePrice', \
+    'mean_30_RatePrice', \
+    'DIFF_12_26_Rate', \
+    'DEA_9_Rate', \
+    'MACD_Rate', \
+    'RSI_5', \
+    'RSI_14', \
+    'WR_13', \
+    'WR_34', \
+]
+#KDJ_K,KDJ_D和KDJ_J指标之间比较才有意义，所以还要在衍生一些指标后才纳入计算参考
+#BOLL_MA,BOLL_UP和BOLL_DN指标之间比较才有意义，所以还要在衍生一些指标后才纳入计算参考
+#DMI-xxx指标之间比较才有意义，所以还要在衍生一些指标后才纳入计算参考
+
 def getNamebyStock_configfile(No):
     temp_stockList=[]
     temp_stockName=[]

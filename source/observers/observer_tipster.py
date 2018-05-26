@@ -2,6 +2,9 @@
 #Python 3.5.x
 #utf8编码
 
+
+#tensorflow工具的人工智能方式预测
+
 import logging
 import json
 import traceback
@@ -43,9 +46,9 @@ class observer_Tipster(Observer):
     
     #每天的预测某个具体股票的函数
     def tipster_DailyProc(self, stockNo, locks):
-        #要参考的信息项目        
-        #ColTitleUsed=['Volume', 'mean_3_RatePrice', 'mean_5_RatePrice', 'mean_10_RatePrice', 'mean_20_RatePrice', 'mean_30_RatePrice', 'mean_60_RatePrice']
-        ColTitleUsed=['Volume', 'Volume', 'mean_3_RatePrice', 'mean_5_RatePrice', 'mean_10_RatePrice', 'mean_20_RatePrice', 'mean_30_RatePrice', 'mean_30_RatePrice']
+        assert 0
+        #要参考的信息项目
+        ColTitleUsed=config.refStockTargetItem.copy()
         
         self.tipster_DailyProc_Model_Softmax(stockNo, ColTitleUsed, locks)
     
