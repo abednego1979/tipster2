@@ -132,7 +132,7 @@ class observer_PriceFluctuation_MultiStock_DailyClose(Observer):
             #每个actor的维度是（同类的一组股票，均线mean长度）
             try:
                 actor.selfLogger ('info', "<end><meanlen:%d><stockClass:%s>" % (actor.meanLen, actor.StockClass))
-                infoString="Best policy for MultiStocks (meanLen=%d) is buy stock %s.(%s)" % (actor.meanLen, actor.result[0][0], json.dumps(actor.result))
+                infoString="Best policy for MultiStocks (StockClass=%s) (meanLen=%d) is buy stock %s.(%s)" % (actor.StockClass, actor.meanLen, actor.result[0][0], json.dumps(actor.result))
                 myGlobal.logger.info(infoString)
                 
                 try:

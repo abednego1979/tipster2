@@ -63,7 +63,7 @@ class Stock(MyDbEx, BaseFunc):
             fullurl=urlbase+'s='+stockNo.replace('_', '.')
         elif config.stock_data_source == "netease":
             urlbase=config.netease_stock_url
-            fullurl=urlbase+'s='+stockNo.replace('_', '.')
+            fullurl=urlbase
             temp_stockNo = stockNo.split('.')
             prefix='1' if temp_stockNo[1]=='sz' else '0'
             fullurl=fullurl.replace('##STOCKCODE##', prefix+temp_stockNo[0])
